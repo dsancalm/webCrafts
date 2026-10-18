@@ -43,7 +43,12 @@ export function serve({ dir = 'dist', base = defaultBase(), port = 8080, host = 
   }
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://x')
-    let path = decodeURIComponent(url.pathname)
+    let path
+    try {
+      path = decodeURIComponent(url.pathname)
+    } catch {
+      return notFound(res)
+    }
     if (path === prefix.slice(0, -1)) return res.writeHead(301, { location: prefix + url.search }).end()
     if (!path.startsWith(prefix)) return notFound(res)
     const rel = normalize(path.slice(prefix.length))
