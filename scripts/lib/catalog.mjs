@@ -1,0 +1,29 @@
+import { readFileSync } from 'node:fs'
+
+const ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
+const REPO = /^[\w.-]+\/[\w.-]+$/
+
+// apps.json, checked, with each app knowing its group.
+export function loadCatalog(file = 'apps.json') {
+  return parseCatalog(JSON.parse(readFileSync(file, 'utf8')))
+}
+
+export function parseCatalog(data) {
+  const seen = new Set()
+  const groups = data.groups.map((g) => {
+    if (!g.id || !g.name?.en) throw new Error(`group ${JSON.stringify(g.id)} needs an id and name.en`)
+    return {
+      ...g,
+      apps: g.apps.map((app) => {
+        if (!ID.test(app.id ?? '')) throw new Error(`app ${JSON.stringify(app.id)}: id must be lowercase-with-dashes`)
+        if (seen.has(app.id)) throw new Error(`app ${app.id}: duplicate id`)
+        seen.add(app.id)
+        if (!REPO.test(app.repo ?? '')) throw new Error(`app ${app.id}: repo must be owner/name`)
+        if (!app.name || !app.description?.en) throw new Error(`app ${app.id}: needs a name and description.en`)
+        if (app.asset) new RegExp(app.asset) // throws on a bad pattern
+        return { ...app, group: g.id }
+      }),
+    }
+  })
+  return { groups, apps: groups.flatMap((g) => g.apps) }
+}

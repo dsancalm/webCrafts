@@ -1,0 +1,19 @@
+{
+  "name": "webcrafts",
+  "private": true,
+  "type": "module",
+  "description": "Static dashboard of open-source desktop-class web apps, built from their latest GitHub releases for GitHub Pages.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "list": "node scripts/build.mjs --list",
+    "serve": "node scripts/serve.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.63.0"
+  }
+}

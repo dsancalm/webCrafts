@@ -1,0 +1,271 @@
+{
+  "$comment": "Catalog of the apps on the dashboard. Each app is served at <site>/<id>/ from the web zip of its newest GitHub release. Fields: id (URL folder), name, repo (owner/name), alternativeTo (the commercial app it replaces, shown as text only), description (en/es), asset (optional regex for the release asset; default matches '-web.zip' / '-web-<version>.zip'), isolated (needs COOP/COEP, added with a service worker), external (an upstream-hosted web build to link to when the releases have no web zip), experimental (shows a badge).",
+  "groups": [
+    {
+      "id": "creative",
+      "name": { "en": "Creative", "es": "Creatividad" },
+      "alternativeTo": "Adobe Creative Cloud",
+      "apps": [
+        {
+          "id": "photocraft",
+          "name": "PhotoCraft",
+          "repo": "storytold/photocraft",
+          "alternativeTo": "Photoshop",
+          "accent": "#4cb0ff",
+          "description": {
+            "en": "Raster editing with layers, masks, adjustment layers, brushes and PSD files.",
+            "es": "Edición de imágenes con capas, máscaras, capas de ajuste, pinceles y archivos PSD."
+          }
+        },
+        {
+          "id": "vectorcraft",
+          "name": "VectorCraft",
+          "repo": "storytold/vectorcraft",
+          "alternativeTo": "Illustrator",
+          "accent": "#ffa31a",
+          "description": {
+            "en": "Vector illustration: paths, typography and multiple artboards.",
+            "es": "Ilustración vectorial: trazados, tipografía y varias mesas de trabajo."
+          }
+        },
+        {
+          "id": "designcraft",
+          "name": "DesignCraft",
+          "repo": "storytold/designcraft",
+          "alternativeTo": "InDesign",
+          "accent": "#ff4d79",
+          "description": {
+            "en": "Desktop publishing and multi-page layouts.",
+            "es": "Maquetación editorial y diseños de varias páginas."
+          }
+        },
+        {
+          "id": "lightcraft",
+          "name": "LightCraft",
+          "repo": "storytold/lightcraft",
+          "alternativeTo": "Lightroom",
+          "accent": "#4cb0ff",
+          "description": {
+            "en": "Photo library with non-destructive RAW development.",
+            "es": "Biblioteca de fotos con revelado RAW no destructivo."
+          }
+        },
+        {
+          "id": "lightcraft-classic",
+          "name": "LightCraft Classic",
+          "repo": "emmertex/lightcraft-classic",
+          "alternativeTo": "Lightroom Classic",
+          "accent": "#4cb0ff",
+          "description": {
+            "en": "Catalog-based workflow with Library, Develop, Map, Book, Slideshow, Print and Web.",
+            "es": "Flujo basado en catálogo: Biblioteca, Revelado, Mapa, Libro, Presentación, Impresión y Web."
+          }
+        },
+        {
+          "id": "filmcraft",
+          "name": "FilmCraft",
+          "repo": "storytold/filmcraft",
+          "alternativeTo": "Premiere Pro",
+          "accent": "#a3a3ff",
+          "description": {
+            "en": "Timeline video editing with color grading and audio.",
+            "es": "Edición de vídeo en línea de tiempo con etalonaje y audio."
+          }
+        },
+        {
+          "id": "effectcraft",
+          "name": "EffectCraft",
+          "repo": "storytold/effectcraft",
+          "alternativeTo": "After Effects",
+          "accent": "#a3a3ff",
+          "description": {
+            "en": "Motion graphics: compositions, keyframes, effects and expressions.",
+            "es": "Motion graphics: composiciones, fotogramas clave, efectos y expresiones."
+          }
+        },
+        {
+          "id": "pdfcraft",
+          "name": "PdfCraft",
+          "repo": "storytold/pdfcraft",
+          "alternativeTo": "Acrobat Pro",
+          "accent": "#ff4433",
+          "description": {
+            "en": "View, reorder, merge, split and protect PDF documents.",
+            "es": "Ver, reordenar, combinar, dividir y proteger documentos PDF."
+          }
+        }
+      ]
+    },
+    {
+      "id": "office",
+      "name": { "en": "Office", "es": "Oficina" },
+      "alternativeTo": "Microsoft Office",
+      "apps": [
+        {
+          "id": "wordcraft",
+          "name": "WordCraft",
+          "repo": "storytold/wordcraft",
+          "alternativeTo": "Word",
+          "accent": "#4fa8ee",
+          "description": {
+            "en": "Word processor for writing and formatting documents.",
+            "es": "Procesador de textos para escribir y dar formato a documentos."
+          }
+        },
+        {
+          "id": "gridcraft",
+          "name": "GridCraft",
+          "repo": "storytold/gridcraft",
+          "alternativeTo": "Excel",
+          "accent": "#3fc888",
+          "description": {
+            "en": "Spreadsheets, formulas and data.",
+            "es": "Hojas de cálculo, fórmulas y datos."
+          }
+        },
+        {
+          "id": "deckcraft",
+          "name": "DeckCraft",
+          "repo": "storytold/deckcraft",
+          "alternativeTo": "PowerPoint",
+          "accent": "#ff9670",
+          "description": {
+            "en": "Slide decks and presentations.",
+            "es": "Diapositivas y presentaciones."
+          }
+        },
+        {
+          "id": "notecraft",
+          "name": "NoteCraft",
+          "repo": "AlienTechSoftware/notecraft",
+          "alternativeTo": "OneNote",
+          "accent": "#cf73ec",
+          "description": {
+            "en": "Notebooks, sections and pages stored as plain HTML and Markdown folders.",
+            "es": "Cuadernos, secciones y páginas guardados como carpetas de HTML y Markdown."
+          }
+        },
+        {
+          "id": "mailcraft",
+          "name": "MailCraft",
+          "repo": "MonkeySaint/mailcraft",
+          "alternativeTo": "Outlook",
+          "accent": "#38aeea",
+          "description": {
+            "en": "Mail, calendar, contacts and tasks (the web version uses a demo mailbox).",
+            "es": "Correo, calendario, contactos y tareas (la versión web usa un buzón de ejemplo)."
+          }
+        }
+      ]
+    },
+    {
+      "id": "3d",
+      "name": { "en": "3D", "es": "3D" },
+      "apps": [
+        {
+          "id": "cadcraft",
+          "name": "CADCraft",
+          "repo": "storytold/cadcraft",
+          "alternativeTo": "AutoCAD",
+          "accent": "#ec6a92",
+          "description": {
+            "en": "2D drafting and computer-aided design.",
+            "es": "Dibujo técnico 2D y diseño asistido por ordenador."
+          }
+        },
+        {
+          "id": "solidcraft",
+          "name": "SolidCraft",
+          "repo": "bherbruck/solvecraft",
+          "alternativeTo": "Fusion 360",
+          "accent": "#ff8633",
+          "description": {
+            "en": "Parametric solid modeling with constrained sketches; opens STEP, STL and more.",
+            "es": "Modelado sólido paramétrico con bocetos restringidos; abre STEP, STL y más."
+          }
+        },
+        {
+          "id": "subcraft",
+          "name": "SubCraft",
+          "repo": "Aalzard/subcraft",
+          "alternativeTo": "Substance Painter",
+          "external": "https://aalzard.github.io/subcraft/",
+          "accent": "#ff8a33",
+          "description": {
+            "en": "Texture painting on 3D models with layered materials and masks.",
+            "es": "Pintura de texturas sobre modelos 3D con materiales por capas y máscaras."
+          }
+        },
+        {
+          "id": "materialcraft",
+          "name": "MaterialCraft",
+          "repo": "PiJellyPin/MaterialCraft",
+          "alternativeTo": "Substance Designer",
+          "accent": "#8a63de",
+          "description": {
+            "en": "Node-based procedural materials with noises, patterns and PBR outputs.",
+            "es": "Materiales procedurales por nodos con ruidos, patrones y salidas PBR."
+          }
+        }
+      ]
+    },
+    {
+      "id": "music",
+      "name": { "en": "Music", "es": "Música" },
+      "apps": [
+        {
+          "id": "soundcraft",
+          "name": "SoundCraft",
+          "repo": "storytold/soundcraft",
+          "alternativeTo": "Pro Tools",
+          "accent": "#b088ff",
+          "description": {
+            "en": "Multitrack recording, editing and mixing.",
+            "es": "Grabación, edición y mezcla multipista."
+          }
+        },
+        {
+          "id": "lemon-studio",
+          "name": "Lemon Studio",
+          "repo": "daijro/Lemon-Studio-web",
+          "alternativeTo": "FL Studio",
+          "isolated": true,
+          "experimental": true,
+          "accent": "#f8d84a",
+          "description": {
+            "en": "Pattern-based music production with piano roll, mixer and instruments. Early preview.",
+            "es": "Producción musical por patrones con piano roll, mezclador e instrumentos. Versión preliminar."
+          }
+        },
+        {
+          "id": "honeydew",
+          "name": "Honeydew",
+          "repo": "daijro/honeydew",
+          "alternativeTo": "FL Studio Mobile",
+          "accent": "#cde397",
+          "description": {
+            "en": "Pocket music studio: sequencer, instruments and mixing.",
+            "es": "Estudio musical de bolsillo: secuenciador, instrumentos y mezcla."
+          }
+        }
+      ]
+    },
+    {
+      "id": "other",
+      "name": { "en": "Other", "es": "Otras" },
+      "apps": [
+        {
+          "id": "figcraft",
+          "name": "FigCraft",
+          "repo": "storytold/figcraft",
+          "alternativeTo": "Figma",
+          "accent": "#1fdca0",
+          "description": {
+            "en": "UI design with components and interactive prototypes.",
+            "es": "Diseño de interfaces con componentes y prototipos interactivos."
+          }
+        }
+      ]
+    }
+  ]
+}
