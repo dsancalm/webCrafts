@@ -28,6 +28,11 @@ Detalles:
 - Si una app no tiene release con versión web, aparece en el panel como «Aún sin versión web» (NoteCraft,
   MaterialCraft) o enlaza a la web que mantiene su propio proyecto (SubCraft). En cuanto publiquen un zip
   web, el siguiente build la incluye automáticamente.
+- GitHub Pages admite como mucho 1 GB por sitio. Si el build supera el presupuesto (`--budget-mb`, 950 MB
+  por defecto), quita primero las apps más grandes que tengan una copia alojada en otro sitio (`external`) y
+  las enlaza a ella. Hoy es el caso de **Honeydew**: su release web pesa 1,36 GB (716 MB descomprimida, por
+  su biblioteca de sonidos), así que el panel la abre en la copia que mantiene su autor en
+  playground.daijro.dev. El resto de apps ocupa unos 570 MB.
 - Si la descarga de una app falla, el resto se publica igualmente y esa app sale como «No disponible».
 - Se descartan archivos que Pages no usa (`_headers`, `.htaccess`, copias `.gz`/`.br` duplicadas). Las
   licencias que traen los zips se conservan.
@@ -38,7 +43,9 @@ Detalles:
 
 Solo hay que hacerlo una vez:
 
-1. En el repositorio: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+1. En el repositorio: **Settings → Pages → Build and deployment → Source: GitHub Actions**. El
+   `GITHUB_TOKEN` del workflow no puede activarlo por ti (requiere permisos de administración); si no está
+   activado, el job `deploy` falla con un mensaje que lo indica.
 2. Ve a **Actions → Build and deploy to GitHub Pages → Run workflow** (o haz un push a la rama por
    defecto). Al terminar, el sitio queda en `https://<usuario>.github.io/<repo>/`.
 
@@ -53,8 +60,8 @@ el bloque `schedule` de `.github/workflows/pages.yml` (por defecto, una vez al d
 
 ## Límites de GitHub Pages
 
-- Tamaño del sitio publicado: 1 GB como máximo. El build muestra el total en el resumen del job y
-  falla si se pasa.
+- Tamaño del sitio publicado: 1 GB como máximo. El build muestra el total en el resumen del job y se
+  ajusta al presupuesto como se explica arriba.
 - Ancho de banda orientativo de 100 GB al mes. Las apps pesan decenas de MB cada una, así que es más que
   suficiente para uso personal o de un equipo pequeño.
 

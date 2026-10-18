@@ -22,9 +22,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -70,5 +70,14 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Check that GitHub Pages is enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh api "repos/${{ github.repository }}/pages" --silent 2>/dev/null; then
+            echo "::error::GitHub Pages isn't enabled for this repository. Turn it on in Settings → Pages → Build and deployment → Source: GitHub Actions, then run this workflow again."
+            exit 1
+          fi
+
       - id: deployment
         uses: actions/deploy-pages@v4

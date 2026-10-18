@@ -17,7 +17,10 @@ function card(app, result) {
   const search = [app.name, app.alternativeTo, app.description.en, app.description.es, app.repo].join(' ').toLowerCase()
   const badges = [
     app.experimental && `<span class="badge warn">${t('Experimental', 'Experimental')}</span>`,
-    status === 'external' && `<span class="badge">${t('Hosted by the project', 'Alojada por el proyecto')}</span>`,
+    status === 'external' && result?.reason !== 'size' && `<span class="badge">${t('Hosted by the project', 'Alojada por el proyecto')}</span>`,
+    status === 'external' && result?.reason === 'size' &&
+      `<span class="badge">${t('Too big for GitHub Pages: opens a hosted copy', 'Demasiado grande para GitHub Pages: abre una copia alojada')}</span>`,
+    status === 'too-big' && `<span class="badge muted">${t('Too big for GitHub Pages', 'Demasiado grande para GitHub Pages')}</span>`,
     status === 'missing' && `<span class="badge muted">${t('No web release yet', 'Aún sin versión web')}</span>`,
     status === 'failed' && `<span class="badge muted">${t('Unavailable in this build', 'No disponible en esta versión')}</span>`,
   ].filter(Boolean)

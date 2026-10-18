@@ -82,3 +82,44 @@ test('build.mjs installs releases and renders the dashboard', async () => {
     gh.close()
   }
 })
+
+// Over the size budget, the biggest app with a hosted copy is linked to it; without one, it's left out.
+test('build.mjs keeps the site within its size budget', async () => {
+  const page = '<!doctype html><html><head><meta charset="utf-8"><title>x</title></head><body></body></html>'
+  const big = (n) => Buffer.alloc(n * 1024 * 1024, 1)
+  const release = (name, files) => [{ tag_name: 'v1', published_at: '2026-10-01T00:00:00Z', prerelease: false, assets: [{ name, state: 'uploaded', zip: makeZip(files) }] }]
+  const gh = await fakeGitHub({
+    'o/huge': release('huge-web-1.zip', { 'index.html': page, 'data.bin': big(3) }),
+    'o/large': release('large-web-1.zip', { 'index.html': page, 'data.bin': big(2) }),
+    'o/small': release('small-web-1.zip', { 'index.html': page }),
+  })
+  const dir = tempDir()
+  const catalog = join(dir, 'apps.json')
+  const app = (id, repo, extra = {}) => ({ id, name: id, repo, description: { en: id, es: id }, ...extra })
+  writeFileSync(
+    catalog,
+    JSON.stringify({
+      groups: [{ id: 'g', name: { en: 'G' }, apps: [app('photocraft', 'o/huge', { external: 'https://example.com/huge/' }), app('wordcraft', 'o/large'), app('gridcraft', 'o/small')] }],
+    }),
+  )
+  const out = join(dir, 'dist')
+  try {
+    const env = { ...process.env, GITHUB_API_URL: gh.url, GITHUB_TOKEN: '', GITHUB_STEP_SUMMARY: '', GITHUB_ACTIONS: '' }
+    // The dashboard and icons are about 0.5 MB: 1.5 MB leaves room for the small app only.
+    const { stdout } = await run(process.execPath, ['scripts/build.mjs', '--catalog', catalog, '--out', out, '--cache', join(dir, 'c'), '--budget-mb', '1.5'], { cwd: root, env })
+    assert.match(stdout, /Warning: photocraft v1 \(3\.0 MB\) doesn't fit .*linking to https:\/\/example\.com\/huge\//)
+    const versions = JSON.parse(readFileSync(join(out, 'versions.json'), 'utf8')).apps
+    assert.equal(versions.photocraft.status, 'external')
+    assert.equal(versions.photocraft.reason, 'size')
+    assert.equal(versions.wordcraft.status, 'too-big')
+    assert.equal(versions.gridcraft.status, 'ok')
+    assert.ok(!existsSync(join(out, 'photocraft')))
+    assert.ok(!existsSync(join(out, 'wordcraft')))
+    const index = readFileSync(join(out, 'index.html'), 'utf8')
+    assert.match(index, /href="https:\/\/example\.com\/huge\/"/)
+    assert.match(index, /Too big for GitHub Pages: opens a hosted copy/)
+    assert.match(index, /<span class="l-en">Too big for GitHub Pages<\/span>/)
+  } finally {
+    gh.close()
+  }
+})

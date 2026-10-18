@@ -3,10 +3,13 @@
 // its newest GitHub release into dist/<id>/.
 //
 //   node scripts/build.mjs [--out dist] [--cache .cache] [--only id,id] [--list] [--strict] [--catalog apps.json]
+//                          [--budget-mb 950]
 //
-//   --only    build just these apps (the others show as unavailable)
-//   --list    only print the release each app would be installed from
-//   --strict  exit with an error when an app with a web release fails to install
+//   --only       build just these apps (the others show as unavailable)
+//   --list       only print the release each app would be installed from
+//   --strict     exit with an error when an app with a web release fails to install
+//   --budget-mb  the most the site may weigh; over it, the biggest apps are linked to their hosted copy
+//                (`external` in apps.json), or else left out
 //
 // Set GITHUB_TOKEN to lift GitHub's anonymous API limit (60 requests an hour).
 import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
@@ -19,7 +22,7 @@ import { pickRelease } from './lib/releases.mjs'
 import { renderDashboard, renderNotFound } from './lib/render.mjs'
 
 // GitHub Pages: published sites may be at most 1 GB, and git-hosted files at most 100 MB.
-const SITE_LIMIT = 1024 ** 3
+const SITE_LIMIT = 1e9
 const FILE_WARN = 100 * 1024 ** 2
 
 const { values: opts } = parseArgs({
@@ -30,6 +33,7 @@ const { values: opts } = parseArgs({
     list: { type: 'boolean', default: false },
     strict: { type: 'boolean', default: false },
     catalog: { type: 'string', default: 'apps.json' },
+    'budget-mb': { type: 'string', default: '950' },
   },
 })
 
@@ -37,6 +41,7 @@ const catalog = loadCatalog(opts.catalog)
 const only = opts.only ? new Set(opts.only.split(',').map((s) => s.trim())) : null
 for (const id of only ?? []) if (!catalog.apps.some((a) => a.id === id)) throw new Error(`--only: no app "${id}" in apps.json`)
 const mb = (n) => `${(n / 1024 ** 2).toFixed(1)} MB`
+const warn = (message) => console.log(process.env.GITHUB_ACTIONS ? `::warning::${message}` : `Warning: ${message}`)
 
 // Runs `fn` over `items`, `limit` at a time.
 async function pool(items, limit, fn) {
@@ -117,14 +122,28 @@ await pool(catalog.apps, 3, async (app) => {
   }
 })
 
+// Over the size budget, the biggest apps go first: to their hosted copy when they have one, else left out.
+const budget = Number(opts['budget-mb']) * 1024 ** 2
+let total = walk(out).reduce((n, f) => n + statSync(f).size, 0)
+while (total > budget) {
+  const installed = catalog.apps.filter((a) => results[a.id]?.status === 'ok').sort((a, b) => results[b.id].bytes - results[a.id].bytes)
+  const app = installed.find((a) => a.external) ?? installed[0]
+  if (!app) break
+  const { bytes, tag } = results[app.id]
+  rmSync(join(out, app.id), { recursive: true, force: true })
+  total -= bytes
+  results[app.id] = { status: app.external ? 'external' : 'too-big', reason: 'size', tag, bytes, error: `${tag} is ${mb(bytes)}: over the site's size budget` }
+  warn(`${app.id} ${tag} (${mb(bytes)}) doesn't fit the ${opts['budget-mb']} MB budget: ${app.external ? `linking to ${app.external}` : 'left out'}`)
+}
+
 const builtAt = new Date().toISOString()
 writeFileSync(join(out, 'index.html'), renderDashboard({ catalog, results, builtAt, siteRepo: process.env.GITHUB_REPOSITORY }))
 writeFileSync(join(out, '404.html'), renderNotFound())
 writeFileSync(join(out, '.nojekyll'), '')
 const versions = Object.fromEntries(
   catalog.apps.map((a) => {
-    const { status, tag, date, asset, bytes, error } = results[a.id] ?? {}
-    return [a.id, { status, repo: a.repo, tag, date, asset, bytes, error }]
+    const { status, reason, tag, date, asset, bytes, error } = results[a.id] ?? {}
+    return [a.id, { status, reason, repo: a.repo, tag, date, asset, bytes, error }]
   }),
 )
 writeFileSync(join(out, 'versions.json'), JSON.stringify({ builtAt, apps: versions }, null, 2) + '\n')
@@ -137,11 +156,11 @@ for (const f of readdirSync(opts.cache)) {
 
 // Report.
 const files = walk(out)
-const total = files.reduce((n, f) => n + statSync(f).size, 0)
+total = files.reduce((n, f) => n + statSync(f).size, 0)
 const big = files.filter((f) => statSync(f).size > FILE_WARN)
 const rows = catalog.apps.map((a) => {
   const r = results[a.id] ?? {}
-  return `| ${a.name} | ${r.status} | ${r.tag ?? ''} | ${r.bytes ? mb(r.bytes) : ''} | ${(r.error ?? '').replace(/\|/g, '\\|')} |`
+  return `| ${a.name} | ${r.status}${r.reason ? ` (${r.reason})` : ''} | ${r.tag ?? ''} | ${r.bytes ? mb(r.bytes) : ''} | ${(r.error ?? '').replace(/\|/g, '\\|')} |`
 })
 const summary = [
   `### webCrafts build`,
@@ -150,7 +169,7 @@ const summary = [
   `|---|---|---|---|---|`,
   ...rows,
   '',
-  `Site total: **${mb(total)}** of the 1024 MB GitHub Pages allows.`,
+  `Site total: **${mb(total)}** (budget ${opts['budget-mb']} MB; GitHub Pages allows 1 GB).`,
   ...big.map((f) => `- Warning: ${f} is ${mb(statSync(f).size)}`),
 ].join('\n')
 console.log(`\n${summary}\n`)

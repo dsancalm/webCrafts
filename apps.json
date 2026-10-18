@@ -1,5 +1,5 @@
 {
-  "$comment": "Catalog of the apps on the dashboard. Each app is served at <site>/<id>/ from the web zip of its newest GitHub release. Fields: id (URL folder), name, repo (owner/name), alternativeTo (the commercial app it replaces, shown as text only), description (en/es), asset (optional regex for the release asset; default matches '-web.zip' / '-web-<version>.zip'), isolated (needs COOP/COEP, added with a service worker), external (an upstream-hosted web build to link to when the releases have no web zip), experimental (shows a badge).",
+  "$comment": "Catalog of the apps on the dashboard. Each app is served at <site>/<id>/ from the web zip of its newest GitHub release. Fields: id (URL folder), name, repo (owner/name), alternativeTo (the commercial app it replaces, shown as text only), description (en/es), asset (optional regex for the release asset; default matches '-web.zip' / '-web-<version>.zip'), isolated (needs COOP/COEP, added with a service worker), external (a hosted copy to link to when the releases have no web zip, or when the app doesn't fit the site's size budget), experimental (shows a badge).",
   "groups": [
     {
       "id": "creative",
@@ -242,6 +242,7 @@
           "name": "Honeydew",
           "repo": "daijro/honeydew",
           "alternativeTo": "FL Studio Mobile",
+          "external": "https://playground.daijro.dev/honeydew/",
           "accent": "#cde397",
           "description": {
             "en": "Pocket music studio: sequencer, instruments and mixing.",
