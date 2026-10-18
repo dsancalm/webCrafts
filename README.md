@@ -84,7 +84,12 @@ usaría cada app sin descargar nada) y `--strict` (falla si alguna app con relea
 
 Edita `apps.json` y pon el icono en `icons/<id>.png` (128×128). Campos opcionales por app: `asset`
 (expresión regular para el nombre del zip si no sigue el patrón habitual), `isolated` (necesita
-aislamiento cross-origin), `external` (URL alternativa si no hay release web) y `experimental`.
+aislamiento cross-origin), `external` (URL alternativa si no hay release web o no cabe en el presupuesto),
+`skipTags` (releases cuya versión web está rota: se usa la anterior) y `experimental`.
+
+Ahora mismo `skipTags` salta DeckCraft `v0.8.0`, cuya versión web falla al arrancar en cualquier navegador
+(llama a `std::process::id()`, que no existe en WebAssembly) y se sirve `v0.7.0`. Cuando DeckCraft publique
+una release corregida, basta con quitar la línea (o dejarla: la nueva release se cogerá igualmente).
 
 ## Créditos y marcas
 
