@@ -23,4 +23,5 @@ test('rejects duplicate ids, bad ids and bad repos', () => {
   assert.throws(() => parseCatalog(group([app({ id: 'Bad Id' })])), /lowercase/)
   assert.throws(() => parseCatalog(group([app({ repo: 'nope' })])), /owner\/name/)
   assert.throws(() => parseCatalog(group([app({ asset: '(' })])), /Invalid regular expression/)
+  assert.throws(() => parseCatalog(group([app({ skipTags: 'v1' })])), /skipTags/)
 })

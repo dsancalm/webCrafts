@@ -59,6 +59,15 @@ test('honors a custom asset pattern and skips half-uploaded assets', () => {
   assert.equal(pick.asset.name, 'site.zip')
 })
 
+test('skipTags passes over broken releases', () => {
+  const releases = [
+    release('v0.8.0', '2026-10-15T00:00:00Z', ['deck-web-0.8.0.zip']),
+    release('v0.7.0', '2026-09-15T00:00:00Z', ['deck-web-0.7.0.zip']),
+  ]
+  assert.equal(pickRelease(releases, { skipTags: ['v0.8.0'] }).release.tag_name, 'v0.7.0')
+  assert.equal(pickRelease(releases, { skipTags: ['v0.9.0'] }).release.tag_name, 'v0.8.0')
+})
+
 test('no web zip anywhere gives null', () => {
   assert.equal(pickRelease([release('v1', '2026-01-01T00:00:00Z', ['app.msi'])], {}), null)
   assert.equal(pickRelease([], {}), null)

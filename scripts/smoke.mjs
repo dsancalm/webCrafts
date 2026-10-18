@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Opens the built site in headless Chromium, served like GitHub Pages serves it (scripts/serve.mjs), and
 // checks that the dashboard links work and that each installed app's page loads its own files: any
-// same-origin request answered with an error fails the check (a path problem), and an app that needs
-// cross-origin isolation must get it. Console errors are reported but don't fail it: headless Chromium has
-// no GPU, and several apps say so.
+// same-origin request answered with an error fails the check (a path problem), so does a Rust panic, and an
+// app that needs cross-origin isolation must get it. Other console errors are reported but don't fail it:
+// headless Chromium has no GPU, and several apps say so.
 //
 //   node scripts/smoke.mjs [--dir dist] [--wait 8000] [--only id,id] [--screenshots dir]
 //
@@ -33,6 +33,10 @@ function findBrowser() {
   }
   return ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(existsSync)
 }
+
+// Files apps ask for that their release doesn't ship, and do fine without: PhotoCraft's optional fonts/ folder
+// and the CJK fonts LightCraft loads on demand.
+const OPTIONAL = [/\/fonts\/manifest\.txt$/, /_zh_han[st]\.otf$/]
 
 const { apps } = JSON.parse(readFileSync(join(opts.dir, 'versions.json'), 'utf8'))
 const only = opts.only && new Set(opts.only.split(','))
@@ -78,8 +82,10 @@ for (const id of installed) {
   const failed = []
   const errors = []
   const origin = new URL(site).origin
+  const optional = []
   page.on('response', (r) => {
-    if (r.url().startsWith(origin) && r.status() >= 400) failed.push(`${r.status()} ${r.url().slice(origin.length)}`)
+    if (!r.url().startsWith(origin) || r.status() < 400) return
+    ;(OPTIONAL.some((re) => re.test(r.url())) ? optional : failed).push(`${r.status()} ${r.url().slice(origin.length)}`)
   })
   page.on('requestfailed', (r) => {
     if (r.url().startsWith(origin) && !/ERR_ABORTED/.test(r.failure()?.errorText ?? '')) failed.push(`${r.failure()?.errorText} ${r.url().slice(origin.length)}`)
@@ -95,10 +101,13 @@ for (const id of installed) {
       canvases: [...document.querySelectorAll('canvas')].filter((c) => c.width > 0 && c.height > 0).length,
     }))
     if (failed.length) problems.push(`${id}: ${failed.length} failed requests: ${[...new Set(failed)].slice(0, 5).join('; ')}`)
+    const panic = errors.find((e) => /panicked at/.test(e))
+    if (panic) problems.push(`${id}: ${panic.slice(0, 200)}`)
     if (isolated.has(id) && !state.isolated) problems.push(`${id}: not cross-origin isolated`)
     report.push(
       `${id}: "${state.title}", ${state.canvases} canvas(es)${isolated.has(id) ? `, isolated=${state.isolated}` : ''}` +
-        (errors.length ? `, ${errors.length} console error(s), first: ${errors[0].slice(0, 160)}` : ''),
+        (errors.length ? `, ${errors.length} console error(s), first: ${errors[0].slice(0, 160)}` : '') +
+        (optional.length ? `, optional files missing: ${optional.join('; ')}` : ''),
     )
     if (opts.screenshots) await page.screenshot({ path: join(opts.screenshots, `${id}.png`) })
   } catch (e) {

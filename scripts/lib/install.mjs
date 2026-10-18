@@ -53,6 +53,12 @@ export function injectEarly(html, snippet) {
   return snippet + html
 }
 
+// Root-absolute references ("/app.js") to files of the build only work at the root of a domain. Those that name
+// one of the build's own top-level files or folders are made relative ("./app.js"), so the app works in its folder.
+export function relativize(html, names) {
+  return html.replace(/(["'`])\/([^"'`\/?#\s][^"'`?#\s]*)/g, (m, quote, path) => (names.has(path.split('/')[0]) ? `${quote}./${path}` : m))
+}
+
 export const hasIcon = (html) => /<link\b[^>]*\brel=["']?(shortcut )?icon\b/i.test(html)
 
 // Apps that need cross-origin isolation (SharedArrayBuffer) get it from a service worker, as Pages can't
@@ -62,8 +68,8 @@ export function holdModules(html) {
   return html.replace(/<script\b([^>]*)\btype=(["'])module\2/gi, '<script$1type=$2text/x-webcrafts-module$2')
 }
 
-export function patchPage(html, { iconFile, isolated }) {
-  let out = html
+export function patchPage(html, { iconFile, isolated, names = new Set() }) {
+  let out = relativize(html, names)
   let head = ''
   if (iconFile && !hasIcon(out)) head += `\n<link rel="icon" href="${iconFile}">`
   if (isolated) {
@@ -90,7 +96,8 @@ export function installZip(zip, dest, { app, iconPath, siteDir }) {
       cpSync(join(siteDir, 'coi-sw.js'), join(root, 'webcrafts-coi-sw.js'))
     }
     const page = join(root, 'index.html')
-    writeFileSync(page, patchPage(readFileSync(page, 'utf8'), { iconFile, isolated: app.isolated }))
+    const names = new Set(readdirSync(root))
+    writeFileSync(page, patchPage(readFileSync(page, 'utf8'), { iconFile, isolated: app.isolated, names }))
     rmSync(dest, { recursive: true, force: true })
     renameSync(root, dest)
     const files = walk(dest)

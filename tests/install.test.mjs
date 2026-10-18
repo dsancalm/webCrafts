@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { clean, hasIcon, holdModules, injectEarly, installZip, patchPage } from '../scripts/lib/install.mjs'
+import { clean, hasIcon, holdModules, injectEarly, installZip, patchPage, relativize } from '../scripts/lib/install.mjs'
 import { makeZip, tempDir } from './helpers.mjs'
 
 test('injectEarly goes after <meta charset>, else <head>, else <html>', () => {
@@ -12,6 +12,22 @@ test('injectEarly goes after <meta charset>, else <head>, else <html>', () => {
   assert.equal(injectEarly('<title>x</title>', '<i>'), '<i><title>x</title>')
   // <header> isn't <head>
   assert.equal(injectEarly('<html><header>', '<i>'), '<html><i><header>')
+})
+
+test('relativize rewrites root-absolute references to files of the build only', () => {
+  const names = new Set(['app-1.js', 'app-1_bg.wasm', 'assets'])
+  const html = `<link rel="modulepreload" href="/app-1.js"><link href='/assets/x.css'>
+<script type="module">import init from '/app-1.js'; init({ module_or_path: '/app-1_bg.wasm' })</script>
+<a href="/">home</a><a href="/other/">x</a><script src="//cdn.example/x.js"></script><img src="https://e.com/a.png"><img src="./ok.png">`
+  const out = relativize(html, names)
+  assert.match(out, /href="\.\/app-1\.js"/)
+  assert.match(out, /href='\.\/assets\/x\.css'/)
+  assert.match(out, /from '\.\/app-1\.js'/)
+  assert.match(out, /module_or_path: '\.\/app-1_bg\.wasm'/)
+  assert.match(out, /href="\/"/)
+  assert.match(out, /href="\/other\/"/)
+  assert.match(out, /src="\/\/cdn\.example\/x\.js"/)
+  assert.match(out, /src="\.\/ok\.png"/)
 })
 
 test('hasIcon finds icon links', () => {

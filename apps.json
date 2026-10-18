@@ -1,5 +1,5 @@
 {
-  "$comment": "Catalog of the apps on the dashboard. Each app is served at <site>/<id>/ from the web zip of its newest GitHub release. Fields: id (URL folder), name, repo (owner/name), alternativeTo (the commercial app it replaces, shown as text only), description (en/es), asset (optional regex for the release asset; default matches '-web.zip' / '-web-<version>.zip'), isolated (needs COOP/COEP, added with a service worker), external (a hosted copy to link to when the releases have no web zip, or when the app doesn't fit the site's size budget), experimental (shows a badge).",
+  "$comment": "Catalog of the apps on the dashboard. Each app is served at <site>/<id>/ from the web zip of its newest GitHub release. Fields: id (URL folder), name, repo (owner/name), alternativeTo (the commercial app it replaces, shown as text only), description (en/es), asset (optional regex for the release asset; default matches '-web.zip' / '-web-<version>.zip'), isolated (needs COOP/COEP, added with a service worker), external (a hosted copy to link to when the releases have no web zip, or when the app doesn't fit the site's size budget), skipTags (releases whose web build is broken, passed over for the previous one), experimental (shows a badge).",
   "groups": [
     {
       "id": "creative",
@@ -128,6 +128,8 @@
           "name": "DeckCraft",
           "repo": "storytold/deckcraft",
           "alternativeTo": "PowerPoint",
+          "skipTags": ["v0.8.0"],
+          "$skipTags": "v0.8.0's web build panics at start (std::process::id, which wasm32 lacks: 'no pids on this platform'). Remove once a release fixes it.",
           "accent": "#ff9670",
           "description": {
             "en": "Slide decks and presentations.",
