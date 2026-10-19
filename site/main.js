@@ -16,6 +16,7 @@ const TEXT = {
     caches: (n) => `${n} cache${n === 1 ? '' : 's'}`,
     cookies: (n) => `${n} cookie${n === 1 ? '' : 's'}`,
     failed: 'Some data could not be deleted (the browser console says why).',
+    freeing: 'The browser frees the space once no app tab or worker is using it any more (usually within a minute): the figure above updates by itself.',
   },
   es: {
     search: 'Buscar apps',
@@ -28,6 +29,7 @@ const TEXT = {
     caches: (n) => `${n} caché${n === 1 ? '' : 's'}`,
     cookies: (n) => `${n} cookie${n === 1 ? '' : 's'}`,
     failed: 'No se pudieron borrar algunos datos (la consola del navegador dice por qué).',
+    freeing: 'El navegador libera el espacio cuando ya no lo usa ninguna pestaña ni worker de las apps (normalmente en menos de un minuto): la cifra de arriba se actualiza sola.',
   },
 }
 const text = () => TEXT[root.dataset.lang === 'es' ? 'es' : 'en']
@@ -114,6 +116,28 @@ const usage = async () => {
   }
 }
 
+// Runs in a short-lived worker (see clearSiteData): deletes the Cache Storage entries under `base` and says
+// how many caches had some.
+function clearCaches() {
+  onmessage = async ({ data: base }) => {
+    try {
+      let count = 0
+      for (const name of await caches.keys()) {
+        const cache = await caches.open(name)
+        const requests = await cache.keys()
+        const mine = requests.filter((r) => r.url.startsWith(base))
+        // (an empty cache can't be told apart by site: it stays)
+        if (mine.length && mine.length === requests.length) await caches.delete(name)
+        else await Promise.all(mine.map((r) => cache.delete(r)))
+        if (mine.length) count++
+      }
+      postMessage({ count })
+    } catch (e) {
+      postMessage({ error: String(e) })
+    }
+  }
+}
+
 async function clearSiteData(appIds) {
   const done = { workers: 0, caches: 0, cookies: 0, failed: false }
   // Each step runs only where the browser has its API.
@@ -132,14 +156,21 @@ async function clearSiteData(appIds) {
     }
   })
   await step('caches' in self, async () => {
-    for (const name of await caches.keys()) {
-      const cache = await caches.open(name)
-      const requests = await cache.keys()
-      const mine = requests.filter((r) => inSite(r.url))
-      // (an empty cache can't be told apart by site: it stays)
-      if (mine.length && mine.length === requests.length) await caches.delete(name)
-      else await Promise.all(mine.map((r) => cache.delete(r)))
-      if (mine.length) done.caches++
+    // A deleted cache stays on disk while any page or worker still holds it open, and each one has to be
+    // opened to read its URLs: a worker does it, and ending the worker lets go of them at once.
+    const url = URL.createObjectURL(new Blob([`(${clearCaches})()`], { type: 'text/javascript' }))
+    const worker = new Worker(url)
+    try {
+      const answer = await new Promise((resolve, reject) => {
+        worker.onmessage = (e) => resolve(e.data)
+        worker.onerror = (e) => reject(e.message)
+        worker.postMessage(base.href)
+      })
+      if (answer.error) throw answer.error
+      done.caches = answer.count
+    } finally {
+      worker.terminate()
+      URL.revokeObjectURL(url)
     }
   })
   await step(true, async () => {
@@ -189,7 +220,22 @@ if (dialog) {
   const result = dialog.querySelector('.result')
   const [cancel, go, close] = ['.cancel', '.go', '.close'].map((s) => dialog.querySelector(s))
 
+  // The space comes back once nothing holds the deleted data open any more: an app's service worker stops
+  // about 30 s after it's unregistered, an app tab when it closes. The figure follows it for a while.
+  let watch = 0
+  const followUsage = async () => {
+    const run = ++watch
+    for (let i = 0; i < 30; i++) {
+      const bytes = await usage()
+      if (run !== watch || !dialog.open) return
+      usageLine.textContent = bytes === undefined ? '' : text().usageAfter(formatSize(bytes))
+      if (!bytes) return
+      await new Promise((resolve) => setTimeout(resolve, 3000))
+    }
+  }
+
   document.querySelector('.reset-open').addEventListener('click', async () => {
+    watch++
     result.hidden = true
     result.replaceChildren()
     cancel.hidden = go.hidden = false
@@ -209,10 +255,10 @@ if (dialog) {
     const lines = ['workers', 'caches', 'cookies'].filter((k) => done[k]).map((k) => t[k](done[k]))
     const items = lines.length ? [t.removed, ...lines] : [t.nothing]
     if (done.failed) items.push(t.failed)
+    if (done.workers || done.caches) items.push(t.freeing)
     result.replaceChildren(...items.map((line) => Object.assign(document.createElement('li'), { textContent: line })))
     result.hidden = false
-    const bytes = await usage()
-    usageLine.textContent = bytes === undefined ? '' : t.usageAfter(formatSize(bytes))
+    followUsage()
     cancel.hidden = go.hidden = true
     close.hidden = false
     close.focus()

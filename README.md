@@ -44,7 +44,9 @@ Detalles:
   cookies con path dentro de ella (las del panel y las de la carpeta de cada app). Las bases de datos
   IndexedDB, los archivos del almacenamiento del navegador, el almacenamiento local y las cookies de `/` se
   conservan: pertenecen a todo el origen, que en `<usuario>.github.io` comparten todos los sitios de Pages de
-  ese usuario. La caché HTTP normal del navegador no se puede vaciar desde una web.
+  ese usuario. El navegador libera el espacio cuando ya no lo usa ninguna pestaña ni service worker de las
+  apps (el de una app se para unos 30 s después de darlo de baja), y el diálogo va actualizando la cifra. La
+  caché HTTP normal del navegador no se puede vaciar desde una web.
 
 ## Publicarlo en GitHub Pages
 
