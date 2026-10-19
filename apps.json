@@ -135,28 +135,6 @@
             "en": "Slide decks and presentations.",
             "es": "Diapositivas y presentaciones."
           }
-        },
-        {
-          "id": "notecraft",
-          "name": "NoteCraft",
-          "repo": "AlienTechSoftware/notecraft",
-          "alternativeTo": "OneNote",
-          "accent": "#cf73ec",
-          "description": {
-            "en": "Notebooks, sections and pages stored as plain HTML and Markdown folders.",
-            "es": "Cuadernos, secciones y páginas guardados como carpetas de HTML y Markdown."
-          }
-        },
-        {
-          "id": "mailcraft",
-          "name": "MailCraft",
-          "repo": "MonkeySaint/mailcraft",
-          "alternativeTo": "Outlook",
-          "accent": "#38aeea",
-          "description": {
-            "en": "Mail, calendar, contacts and tasks (the web version uses a demo mailbox).",
-            "es": "Correo, calendario, contactos y tareas (la versión web usa un buzón de ejemplo)."
-          }
         }
       ]
     },
@@ -184,29 +162,6 @@
           "description": {
             "en": "Parametric solid modeling with constrained sketches; opens STEP, STL and more.",
             "es": "Modelado sólido paramétrico con bocetos restringidos; abre STEP, STL y más."
-          }
-        },
-        {
-          "id": "subcraft",
-          "name": "SubCraft",
-          "repo": "Aalzard/subcraft",
-          "alternativeTo": "Substance Painter",
-          "external": "https://aalzard.github.io/subcraft/",
-          "accent": "#ff8a33",
-          "description": {
-            "en": "Texture painting on 3D models with layered materials and masks.",
-            "es": "Pintura de texturas sobre modelos 3D con materiales por capas y máscaras."
-          }
-        },
-        {
-          "id": "materialcraft",
-          "name": "MaterialCraft",
-          "repo": "PiJellyPin/MaterialCraft",
-          "alternativeTo": "Substance Designer",
-          "accent": "#8a63de",
-          "description": {
-            "en": "Node-based procedural materials with noises, patterns and PBR outputs.",
-            "es": "Materiales procedurales por nodos con ruidos, patrones y salidas PBR."
           }
         }
       ]
@@ -237,18 +192,6 @@
           "description": {
             "en": "Pattern-based music production with piano roll, mixer and instruments. Early preview.",
             "es": "Producción musical por patrones con piano roll, mezclador e instrumentos. Versión preliminar."
-          }
-        },
-        {
-          "id": "honeydew",
-          "name": "Honeydew",
-          "repo": "daijro/honeydew",
-          "alternativeTo": "FL Studio Mobile",
-          "external": "https://playground.daijro.dev/honeydew/",
-          "accent": "#cde397",
-          "description": {
-            "en": "Pocket music studio: sequencer, instruments and mixing.",
-            "es": "Estudio musical de bolsillo: secuenciador, instrumentos y mezcla."
           }
         }
       ]

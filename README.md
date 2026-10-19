@@ -2,7 +2,7 @@
 
 Un sitio estático, desplegable gratis en **GitHub Pages**, que reúne en un panel las versiones web de
 aplicaciones de código abierto que sustituyen a programas creativos y de oficina (PhotoCraft, VectorCraft,
-WordCraft, GridCraft, FilmCraft, SolidCraft, Honeydew…). Inspirado en
+WordCraft, GridCraft, FilmCraft, SolidCraft, Lemon Studio…). Inspirado en
 [playground.daijro.dev](https://playground.daijro.dev/) ([daijro/openplayground](https://github.com/daijro/openplayground)),
 pero escrito desde cero y sin servidor: cada app es el zip web oficial de la **última release** de su
 repositorio en GitHub, servido tal cual.
@@ -25,14 +25,13 @@ Detalles:
 - Lemon Studio necesita `SharedArrayBuffer` (cabeceras COOP/COEP), que GitHub Pages no puede enviar. El
   build le añade un pequeño service worker (`site/coi-sw.js`, limitado a su carpeta) que pone esas cabeceras,
   y retrasa los scripts de la app hasta que la página está aislada.
-- Si una app no tiene release con versión web, aparece en el panel como «Aún sin versión web» (NoteCraft,
-  MaterialCraft) o enlaza a la web que mantiene su propio proyecto (SubCraft). En cuanto publiquen un zip
-  web, el siguiente build la incluye automáticamente.
+- Si una app del catálogo no tiene release con versión web, aparece en el panel como «Aún sin versión web»,
+  o enlaza a la copia que indique su campo `external`. En cuanto publique un zip web, el siguiente build la
+  incluye automáticamente.
 - GitHub Pages admite como mucho 1 GB por sitio. Si el build supera el presupuesto (`--budget-mb`, 950 MB
   por defecto), quita primero las apps más grandes que tengan una copia alojada en otro sitio (`external`) y
-  las enlaza a ella. Hoy es el caso de **Honeydew**: su release web pesa 1,36 GB (716 MB descomprimida, por
-  su biblioteca de sonidos), así que el panel la abre en la copia que mantiene su autor en
-  playground.daijro.dev. El resto de apps ocupa unos 570 MB.
+  las enlaza a ella; si no tienen, las deja fuera. Con las 16 apps actuales el sitio ocupa algo más de
+  500 MB (el resumen de cada ejecución del workflow da la cifra exacta).
 - Si la descarga de una app falla, el resto se publica igualmente y esa app sale como «No disponible».
 - Se descartan archivos que Pages no usa (`_headers`, `.htaccess`, copias `.gz`/`.br` duplicadas). Las
   licencias que traen los zips se conservan.
@@ -91,11 +90,15 @@ Ahora mismo `skipTags` salta DeckCraft `v0.8.0`, cuya versión web falla al arra
 (llama a `std::process::id()`, que no existe en WebAssembly) y se sirve `v0.7.0`. Cuando DeckCraft publique
 una release corregida, basta con quitar la línea (o dejarla: la nueva release se cogerá igualmente).
 
+## Licencia
+
+El código de este repositorio (scripts, panel, workflow y tests) se publica bajo la [licencia MIT](LICENSE).
+
 ## Créditos y marcas
 
 Cada aplicación pertenece a su proyecto y se distribuye bajo su licencia (MIT/Apache-2.0 o GPL-3.0; el
-panel enlaza al código fuente de cada una). Los iconos proceden de sus repositorios: ver
-[`icons/SOURCES.md`](icons/SOURCES.md).
+panel enlaza al código fuente de cada una). Los iconos de `icons/` proceden de sus repositorios y conservan
+la licencia de cada proyecto, no la MIT de este repositorio: ver [`icons/SOURCES.md`](icons/SOURCES.md).
 
 Este sitio no tiene relación con Adobe, Microsoft, Autodesk, Avid, Image-Line ni Figma. Los nombres de sus
 productos son marcas registradas de sus propietarios y solo se usan para indicar a qué programa sustituye

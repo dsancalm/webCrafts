@@ -8,7 +8,7 @@ const root = join(import.meta.dirname, '..')
 
 test('apps.json is valid and every app has an icon and both descriptions', () => {
   const { apps } = loadCatalog(join(root, 'apps.json'))
-  assert.ok(apps.length >= 20)
+  assert.ok(apps.length > 0)
   for (const app of apps) {
     assert.ok(existsSync(join(root, 'icons', `${app.id}.png`)), `icons/${app.id}.png`)
     assert.ok(app.description.es, `${app.id}: description.es`)

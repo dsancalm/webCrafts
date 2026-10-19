@@ -37,8 +37,8 @@ test('build.mjs installs releases and renders the dashboard', async () => {
           apps: [
             app('photocraft', 'o/photo'),
             app('lemon-studio', 'o/lemon', { isolated: true }),
-            app('notecraft', 'o/notes'),
-            app('subcraft', 'o/sub', { external: 'https://o.github.io/sub/' }),
+            app('gridcraft', 'o/notes'),
+            app('soundcraft', 'o/sub', { external: 'https://o.github.io/sub/' }),
             app('figcraft', 'o/gone'),
           ],
         },
@@ -57,8 +57,8 @@ test('build.mjs installs releases and renders the dashboard', async () => {
     assert.equal(versions.photocraft.status, 'ok')
     assert.equal(versions.photocraft.tag, 'v2.0.0')
     assert.equal(versions['lemon-studio'].tag, 'v0.0.1-web.8')
-    assert.equal(versions.notecraft.status, 'missing')
-    assert.equal(versions.subcraft.status, 'external')
+    assert.equal(versions.gridcraft.status, 'missing')
+    assert.equal(versions.soundcraft.status, 'external')
     assert.equal(versions.figcraft.status, 'failed')
     assert.match(versions.figcraft.error, /404/)
 
