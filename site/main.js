@@ -7,29 +7,25 @@ const store = {
 const TEXT = {
   en: {
     search: 'Search apps',
-    usage: (size) => `Stored by this domain in the browser: ${size}`,
-    usageAfter: (size) => `Stored now: ${size}`,
+    toDelete: (size) => `To be deleted: ${size}`,
     working: 'Deleting…',
     removed: 'Deleted:',
     nothing: 'There was nothing to delete.',
     workers: (n) => `${n} service worker${n === 1 ? '' : 's'}`,
-    caches: (n) => `${n} cache${n === 1 ? '' : 's'}`,
+    caches: (n, size) => `${n} cache${n === 1 ? '' : 's'} (${size})`,
     cookies: (n) => `${n} cookie${n === 1 ? '' : 's'}`,
     failed: 'Some data could not be deleted (the browser console says why).',
-    freeing: 'The browser frees the space once no app tab or worker is using it any more (usually within a minute): the figure above updates by itself.',
   },
   es: {
     search: 'Buscar apps',
-    usage: (size) => `Guardado por este dominio en el navegador: ${size}`,
-    usageAfter: (size) => `Guardado ahora: ${size}`,
+    toDelete: (size) => `Se van a borrar: ${size}`,
     working: 'Borrando…',
     removed: 'Borrado:',
     nothing: 'No había nada que borrar.',
     workers: (n) => `${n} service worker${n === 1 ? '' : 's'}`,
-    caches: (n) => `${n} caché${n === 1 ? '' : 's'}`,
+    caches: (n, size) => `${n} caché${n === 1 ? '' : 's'} (${size})`,
     cookies: (n) => `${n} cookie${n === 1 ? '' : 's'}`,
     failed: 'No se pudieron borrar algunos datos (la consola del navegador dice por qué).',
-    freeing: 'El navegador libera el espacio cuando ya no lo usa ninguna pestaña ni worker de las apps (normalmente en menos de un minuto): la cifra de arriba se actualiza sola.',
   },
 }
 const text = () => TEXT[root.dataset.lang === 'es' ? 'es' : 'en']
@@ -102,44 +98,62 @@ document.addEventListener('keydown', (e) => {
 // "Clear data": only what the apps keep in this browser under this site's folder: service workers, Cache
 // Storage entries and cookies whose path is in it. IndexedDB, browser files (OPFS), local and session storage
 // and cookies for '/' belong to the whole origin, which on <user>.github.io every Pages site of that user
-// shares and can't be told apart by site, so they are left alone.
+// shares and can't be told apart by site, so they are left alone. The dialog shows the size of what it will
+// delete: that of the cached files (service workers and cookies weigh next to nothing).
 const dialog = document.querySelector('dialog.reset')
 const base = new URL('.', location.href)
 const inSite = (url) => url.startsWith(base.href)
 
-const formatSize = (bytes) => (bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(2)} GB` : `${(bytes / 1024 ** 2).toFixed(1)} MB`)
-const usage = async () => {
-  try {
-    return (await navigator.storage.estimate()).usage
-  } catch {
-    return undefined
-  }
-}
+const formatSize = (bytes) =>
+  bytes >= 1024 ** 3
+    ? `${(bytes / 1024 ** 3).toFixed(2)} GB`
+    : bytes >= 1024 ** 2
+      ? `${(bytes / 1024 ** 2).toFixed(1)} MB`
+      : `${Math.round(bytes / 1024)} KB`
 
-// Runs in a short-lived worker (see clearSiteData): deletes the Cache Storage entries under `base` and says
-// how many caches had some.
-function clearCaches() {
-  onmessage = async ({ data: base }) => {
+// Runs in a short-lived worker (see siteCachesIn): finds the Cache Storage entries under `base`, deletes them
+// if `clear`, and says how many caches had some and what they weigh.
+function siteCaches() {
+  onmessage = async ({ data: { base, clear } }) => {
     try {
       let count = 0
+      let bytes = 0
       for (const name of await caches.keys()) {
         const cache = await caches.open(name)
         const requests = await cache.keys()
         const mine = requests.filter((r) => r.url.startsWith(base))
-        // (an empty cache can't be told apart by site: it stays)
-        if (mine.length && mine.length === requests.length) await caches.delete(name)
+        if (!mine.length) continue // (an empty cache can't be told apart by site: it stays)
+        count++
+        for (const r of mine) bytes += (await (await cache.match(r))?.blob())?.size ?? 0
+        if (!clear) continue
+        if (mine.length === requests.length) await caches.delete(name)
         else await Promise.all(mine.map((r) => cache.delete(r)))
-        if (mine.length) count++
       }
-      postMessage({ count })
+      postMessage({ count, bytes })
     } catch (e) {
       postMessage({ error: String(e) })
     }
   }
 }
 
+// A deleted cache stays on disk while any page or worker still holds it open, and each one has to be opened
+// to read its URLs: a worker does it, and ending the worker lets go of them at once.
+const siteCachesIn = (clear) =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(new Blob([`(${siteCaches})()`], { type: 'text/javascript' }))
+    const worker = new Worker(url)
+    const end = (settle, value) => {
+      worker.terminate()
+      URL.revokeObjectURL(url)
+      settle(value)
+    }
+    worker.onmessage = ({ data }) => (data.error ? end(reject, data.error) : end(resolve, data))
+    worker.onerror = (e) => end(reject, e.message)
+    worker.postMessage({ base: base.href, clear })
+  })
+
 async function clearSiteData(appIds) {
-  const done = { workers: 0, caches: 0, cookies: 0, failed: false }
+  const done = { workers: 0, caches: 0, bytes: 0, cookies: 0, failed: false }
   // Each step runs only where the browser has its API.
   const step = async (supported, fn) => {
     if (!supported) return
@@ -156,22 +170,9 @@ async function clearSiteData(appIds) {
     }
   })
   await step('caches' in self, async () => {
-    // A deleted cache stays on disk while any page or worker still holds it open, and each one has to be
-    // opened to read its URLs: a worker does it, and ending the worker lets go of them at once.
-    const url = URL.createObjectURL(new Blob([`(${clearCaches})()`], { type: 'text/javascript' }))
-    const worker = new Worker(url)
-    try {
-      const answer = await new Promise((resolve, reject) => {
-        worker.onmessage = (e) => resolve(e.data)
-        worker.onerror = (e) => reject(e.message)
-        worker.postMessage(base.href)
-      })
-      if (answer.error) throw answer.error
-      done.caches = answer.count
-    } finally {
-      worker.terminate()
-      URL.revokeObjectURL(url)
-    }
+    const { count, bytes } = await siteCachesIn(true)
+    done.caches = count
+    done.bytes = bytes
   })
   await step(true, async () => {
     // A cookie is only visible from its own path: those the apps set for their folder are read and expired
@@ -220,22 +221,7 @@ if (dialog) {
   const result = dialog.querySelector('.result')
   const [cancel, go, close] = ['.cancel', '.go', '.close'].map((s) => dialog.querySelector(s))
 
-  // The space comes back once nothing holds the deleted data open any more: an app's service worker stops
-  // about 30 s after it's unregistered, an app tab when it closes. The figure follows it for a while.
-  let watch = 0
-  const followUsage = async () => {
-    const run = ++watch
-    for (let i = 0; i < 30; i++) {
-      const bytes = await usage()
-      if (run !== watch || !dialog.open) return
-      usageLine.textContent = bytes === undefined ? '' : text().usageAfter(formatSize(bytes))
-      if (!bytes) return
-      await new Promise((resolve) => setTimeout(resolve, 3000))
-    }
-  }
-
   document.querySelector('.reset-open').addEventListener('click', async () => {
-    watch++
     result.hidden = true
     result.replaceChildren()
     cancel.hidden = go.hidden = false
@@ -243,8 +229,10 @@ if (dialog) {
     go.disabled = false
     usageLine.textContent = ''
     dialog.showModal()
-    const bytes = await usage()
-    if (bytes !== undefined) usageLine.textContent = text().usage(formatSize(bytes))
+    try {
+      const { bytes } = await siteCachesIn(false)
+      if (dialog.open && !go.disabled) usageLine.textContent = text().toDelete(formatSize(bytes))
+    } catch {}
   })
 
   go.addEventListener('click', async () => {
@@ -252,13 +240,16 @@ if (dialog) {
     usageLine.textContent = text().working
     const done = await clearSiteData(appIds)
     const t = text()
-    const lines = ['workers', 'caches', 'cookies'].filter((k) => done[k]).map((k) => t[k](done[k]))
+    const lines = [
+      done.workers && t.workers(done.workers),
+      done.caches && t.caches(done.caches, formatSize(done.bytes)),
+      done.cookies && t.cookies(done.cookies),
+    ].filter(Boolean)
     const items = lines.length ? [t.removed, ...lines] : [t.nothing]
     if (done.failed) items.push(t.failed)
-    if (done.workers || done.caches) items.push(t.freeing)
     result.replaceChildren(...items.map((line) => Object.assign(document.createElement('li'), { textContent: line })))
     result.hidden = false
-    followUsage()
+    usageLine.textContent = ''
     cancel.hidden = go.hidden = true
     close.hidden = false
     close.focus()
