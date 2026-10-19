@@ -37,6 +37,11 @@ Detalles:
   licencias que traen los zips se conservan.
 - Panel en inglés y español (según el idioma del navegador, con selector), modo claro/oscuro automático,
   buscador (tecla `/`) y conmutador de «nombres alternativos».
+- Botón **«Borrar datos»** en la cabecera: tras confirmarlo, borra lo que las apps guardan en el navegador
+  (service workers y cachés del sitio, bases de datos IndexedDB, archivos del almacenamiento del navegador,
+  cookies, también las de la carpeta de cada app, y almacenamiento local) y conserva solo el idioma y el modo
+  de nombres del panel. En `<usuario>.github.io` el almacenamiento lo comparten todos los sitios de Pages de
+  ese usuario, y el diálogo lo avisa. La caché HTTP normal del navegador no se puede vaciar desde una web.
 
 ## Publicarlo en GitHub Pages
 

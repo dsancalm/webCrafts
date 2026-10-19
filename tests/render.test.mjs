@@ -53,3 +53,11 @@ test('escapes catalog text and renders both languages and namings', () => {
   // two of four apps are usable
   assert.match(html, /<span class="l-en">2 open-source alternatives/)
 })
+
+test('the headline flows across the width and the clear-data dialog knows every app', () => {
+  assert.ok(!/<h1>[^]*<br>[^]*<\/h1>/.test(html))
+  assert.match(html, /<button type="button" class="reset-open"/)
+  assert.match(html, /<dialog class="reset"[^>]* data-apps="ready hosted none broken"/)
+  assert.match(html, /<span class="l-es">Borrar todo<\/span>/)
+  assert.match(html, /<div class="foot-inner">/)
+})

@@ -9,6 +9,9 @@ const t = (en, es = en) => (en === es ? esc(en) : `<span class="l-en">${esc(en)}
 const GITHUB_MARK =
   '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.88.87 2.33.67.07-.52.28-.87.5-1.07-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg>'
 
+const TRASH_ICON =
+  '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>'
+
 const formatDate = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : '')
 
 function card(app, result) {
@@ -94,14 +97,17 @@ export function renderDashboard({ catalog, results, builtAt, siteRepo }) {
   <header class="top">
     <div class="wrap">
       <p class="brand"><img src="assets/favicon.svg" alt="" width="22" height="22"> webCrafts</p>
-      <div class="lang" role="group" aria-label="Language / Idioma">
-        <button type="button" data-set-lang="en">EN</button><button type="button" data-set-lang="es">ES</button>
+      <div class="top-actions">
+        <button type="button" class="reset-open" aria-haspopup="dialog">${TRASH_ICON}<span class="label">${t('Clear data', 'Borrar datos')}</span></button>
+        <div class="lang" role="group" aria-label="Language / Idioma">
+          <button type="button" data-set-lang="en">EN</button><button type="button" data-set-lang="es">ES</button>
+        </div>
       </div>
     </div>
   </header>
   <main class="wrap">
     <section class="hero">
-      <h1>${t('Creative and office apps,', 'Apps creativas y de oficina,')}<br>${t('right in your browser.', 'directamente en tu navegador.')}</h1>
+      <h1>${t('Creative and office apps, right in your browser.', 'Apps creativas y de oficina, directamente en tu navegador.')}</h1>
       <p class="lead">${t(
         `${ready} open-source alternatives to well-known creative and office software, compiled to WebAssembly. Nothing to install: your files stay on your device.`,
         `${ready} alternativas de código abierto a programas creativos y de oficina conocidos, compiladas a WebAssembly. Sin instalar nada: tus archivos se quedan en tu equipo.`,
@@ -120,6 +126,7 @@ export function renderDashboard({ catalog, results, builtAt, siteRepo }) {
     </div>
   </main>
   <footer class="wrap foot">
+    <div class="foot-inner">
     <p>${t(
       'Each app is the official web build from the latest GitHub release of its project, served unmodified. A browser with hardware acceleration (WebGPU or WebGL 2) is strongly recommended.',
       'Cada app es la versión web oficial de la última release de su proyecto en GitHub, servida sin modificar. Se recomienda encarecidamente un navegador con aceleración por hardware (WebGPU o WebGL 2).',
@@ -131,7 +138,36 @@ export function renderDashboard({ catalog, results, builtAt, siteRepo }) {
       'Not affiliated with, endorsed or sponsored by Adobe, Microsoft, Autodesk, Avid, Image-Line or Figma. Product names are trademarks of their owners and appear only to say which product each open-source project is an alternative to.',
       'Sin relación con Adobe, Microsoft, Autodesk, Avid, Image-Line ni Figma, ni respaldado o patrocinado por ellas. Los nombres de producto son marcas de sus propietarios y solo aparecen para indicar a qué producto sustituye cada proyecto de código abierto.',
     )}</p>
+    </div>
   </footer>
+  <dialog class="reset" aria-labelledby="reset-title" data-apps="${esc(catalog.apps.map((a) => a.id).join(' '))}">
+    <form method="dialog">
+      <h2 id="reset-title">${t('Clear app data', 'Borrar datos de las apps')}</h2>
+      <p>${t(
+        'Deletes everything the apps keep in this browser: service workers, cached files (WebAssembly included), databases, files in browser storage, cookies and local storage.',
+        'Borra todo lo que las apps guardan en este navegador: service workers, archivos en caché (WebAssembly incluido), bases de datos, archivos del almacenamiento del navegador, cookies y almacenamiento local.',
+      )}</p>
+      <p class="warn">${t(
+        'Documents, libraries and settings saved inside the apps are lost too. Close any app tabs you have open first.',
+        'También se pierden los documentos, bibliotecas y ajustes guardados dentro de las apps. Cierra antes las pestañas de apps que tengas abiertas.',
+      )}</p>
+      <p class="shared" hidden>${t('Every GitHub Pages site at', 'Todos los sitios de GitHub Pages de')} <b class="host"></b> ${t(
+        'shares this storage, so their databases, browser files and local storage are deleted as well.',
+        'comparten este almacenamiento, así que sus bases de datos, archivos y almacenamiento local también se borran.',
+      )}</p>
+      <p class="note">${t(
+        "The browser's regular HTTP cache can only be emptied from its settings; GitHub Pages has it check for new versions every 10 minutes.",
+        'La caché HTTP normal del navegador solo se vacía desde sus ajustes; GitHub Pages hace que compruebe si hay versiones nuevas cada 10 minutos.',
+      )}</p>
+      <p class="usage" aria-live="polite"></p>
+      <ul class="result" hidden></ul>
+      <div class="actions">
+        <button value="cancel" class="cancel">${t('Cancel', 'Cancelar')}</button>
+        <button type="button" class="danger go">${t('Delete everything', 'Borrar todo')}</button>
+        <button value="close" class="close" hidden>${t('Close', 'Cerrar')}</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>
 `
