@@ -90,6 +90,11 @@ Ahora mismo `skipTags` salta DeckCraft `v0.8.0`, cuya versión web falla al arra
 (llama a `std::process::id()`, que no existe en WebAssembly) y se sirve `v0.7.0`. Cuando DeckCraft publique
 una release corregida, basta con quitar la línea (o dejarla: la nueva release se cogerá igualmente).
 
+## Futuras mejoras
+
+Qué se ganaría compilando las apps nosotros mismos (SIMD, `-O3`, parches), cómo lo hace el sitio original y los
+pasos para hacerlo aquí: ver [`FUTURAS_MEJORAS.md`](FUTURAS_MEJORAS.md).
+
 ## Licencia
 
 El código de este repositorio (scripts, panel, workflow y tests) se publica bajo la [licencia MIT](LICENSE).
