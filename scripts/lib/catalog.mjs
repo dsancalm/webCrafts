@@ -21,6 +21,7 @@ export function parseCatalog(data) {
         if (!REPO.test(app.repo ?? '')) throw new Error(`app ${app.id}: repo must be owner/name`)
         if (!app.name || !app.description?.en) throw new Error(`app ${app.id}: needs a name and description.en`)
         if (app.asset) new RegExp(app.asset) // throws on a bad pattern
+        if (app.prerelease !== undefined && typeof app.prerelease !== 'boolean') throw new Error(`app ${app.id}: prerelease must be true or false`)
         if (app.skipTags && !(Array.isArray(app.skipTags) && app.skipTags.every((t) => typeof t === 'string'))) {
           throw new Error(`app ${app.id}: skipTags must be a list of tags`)
         }

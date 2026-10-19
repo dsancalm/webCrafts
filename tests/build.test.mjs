@@ -36,7 +36,7 @@ test('build.mjs installs releases and renders the dashboard', async () => {
           name: { en: 'G', es: 'G' },
           apps: [
             app('photocraft', 'o/photo'),
-            app('lemon-studio', 'o/lemon', { isolated: true }),
+            app('lemon-studio', 'o/lemon', { isolated: true, prerelease: true }),
             app('gridcraft', 'o/notes'),
             app('soundcraft', 'o/sub', { external: 'https://o.github.io/sub/' }),
             app('figcraft', 'o/gone'),
@@ -49,7 +49,7 @@ test('build.mjs installs releases and renders the dashboard', async () => {
   const cache = join(dir, 'cache')
   try {
     const env = { ...process.env, GITHUB_API_URL: gh.url, GITHUB_TOKEN: '', GITHUB_STEP_SUMMARY: '', GITHUB_REPOSITORY: 'me/webCrafts' }
-    const args = ['scripts/build.mjs', '--catalog', catalog, '--out', out, '--cache', cache]
+    const args = ['scripts/build.mjs', '--catalog', catalog, '--out', out, '--cache', cache, '--lock', join(dir, 'none.json')]
     const { stdout } = await run(process.execPath, args, { cwd: root, env })
     assert.match(stdout, /photocraft: installed v2\.0\.0/)
 
@@ -106,7 +106,7 @@ test('build.mjs keeps the site within its size budget', async () => {
   try {
     const env = { ...process.env, GITHUB_API_URL: gh.url, GITHUB_TOKEN: '', GITHUB_STEP_SUMMARY: '', GITHUB_ACTIONS: '' }
     // The dashboard and icons are about 0.5 MB: 1.5 MB leaves room for the small app only.
-    const { stdout } = await run(process.execPath, ['scripts/build.mjs', '--catalog', catalog, '--out', out, '--cache', join(dir, 'c'), '--budget-mb', '1.5'], { cwd: root, env })
+    const { stdout } = await run(process.execPath, ['scripts/build.mjs', '--catalog', catalog, '--out', out, '--cache', join(dir, 'c'), '--lock', join(dir, 'none.json'), '--budget-mb', '1.5'], { cwd: root, env })
     assert.match(stdout, /Warning: photocraft v1 \(3\.0 MB\) doesn't fit .*linking to https:\/\/example\.com\/huge\//)
     const versions = JSON.parse(readFileSync(join(out, 'versions.json'), 'utf8')).apps
     assert.equal(versions.photocraft.status, 'external')
@@ -119,6 +119,37 @@ test('build.mjs keeps the site within its size budget', async () => {
     assert.match(index, /href="https:\/\/example\.com\/huge\/"/)
     assert.match(index, /Too big for GitHub Pages: opens a hosted copy/)
     assert.match(index, /<span class="l-en">Too big for GitHub Pages<\/span>/)
+  } finally {
+    gh.close()
+  }
+})
+
+// versions.lock.json decides the version: the pinned one, even with a newer release out; an app missing from it,
+// or whose pinned release is gone, gets its newest stable release.
+test('build.mjs installs the versions in versions.lock.json', async () => {
+  const page = (title) => `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title></head><body></body></html>`
+  const release = (tag, date) => ({ tag_name: tag, published_at: date, prerelease: false, assets: [{ name: `app-web-${tag}.zip`, state: 'uploaded', zip: makeZip({ 'index.html': page(tag) }) }] })
+  const gh = await fakeGitHub({
+    'o/pinned': [release('v2', '2026-10-02T00:00:00Z'), release('v1', '2026-09-01T00:00:00Z')],
+    'o/new': [release('v5', '2026-10-02T00:00:00Z')],
+    'o/gone': [release('v9', '2026-10-02T00:00:00Z')],
+  })
+  const dir = tempDir()
+  const catalog = join(dir, 'apps.json')
+  const app = (id, repo) => ({ id, name: id, repo, description: { en: id } })
+  writeFileSync(catalog, JSON.stringify({ groups: [{ id: 'g', name: { en: 'G' }, apps: [app('photocraft', 'o/pinned'), app('wordcraft', 'o/new'), app('gridcraft', 'o/gone')] }] }))
+  const lock = join(dir, 'versions.lock.json')
+  writeFileSync(lock, JSON.stringify({ apps: { photocraft: ['v1'], gridcraft: ['v8', 'v7'] } }))
+  const out = join(dir, 'dist')
+  try {
+    const env = { ...process.env, GITHUB_API_URL: gh.url, GITHUB_TOKEN: '', GITHUB_STEP_SUMMARY: '', GITHUB_ACTIONS: '' }
+    const { stdout } = await run(process.execPath, ['scripts/build.mjs', '--catalog', catalog, '--out', out, '--cache', join(dir, 'c'), '--lock', lock], { cwd: root, env })
+    assert.match(stdout, /gridcraft: v8 from .* no longer exists; using its newest release instead/)
+    const versions = JSON.parse(readFileSync(join(out, 'versions.json'), 'utf8')).apps
+    assert.equal(versions.photocraft.tag, 'v1')
+    assert.equal(versions.wordcraft.tag, 'v5')
+    assert.equal(versions.gridcraft.tag, 'v9')
+    assert.match(readFileSync(join(out, 'photocraft', 'index.html'), 'utf8'), /<title>v1<\/title>/)
   } finally {
     gh.close()
   }

@@ -1,0 +1,53 @@
+name: Daily app update
+
+# Every day at 06:17 UTC: moves versions.lock.json to each app's newest stable release (Lemon Studio, whose
+# web releases are all pre-releases, follows its newest one). An app without a stable release stays as it
+# is. When an app moved, it commits the file and starts the deploy; when none did, it stops there.
+#
+# GitHub pauses scheduled workflows of a public repository after 60 days without activity: re-enable it
+# from the Actions tab when that happens.
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write # commit versions.lock.json
+  actions: write # start the deploy workflow
+
+concurrency:
+  group: update
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - id: check
+        name: Look for new releases
+        run: node scripts/update.mjs --message-file "$RUNNER_TEMP/message.txt"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Commit versions.lock.json
+        if: steps.check.outputs.commit == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add versions.lock.json
+          git commit -q -F "$RUNNER_TEMP/message.txt"
+          git pull -q --rebase
+          git push -q
+
+      # A push made with the workflow's token starts no other workflow, so the deploy is started here.
+      - name: Deploy
+        if: steps.check.outputs.changed == 'true'
+        run: gh workflow run pages.yml --ref "$GITHUB_REF_NAME"
+        env:
+          GH_TOKEN: ${{ github.token }}

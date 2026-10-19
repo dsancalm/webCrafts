@@ -41,12 +41,19 @@ test('full releases win over newer pre-releases; drafts never count', () => {
   assert.equal(pickRelease(releases, {}).release.tag_name, 'v1')
 })
 
-test('a repo with only pre-releases gets the newest one', () => {
-  const releases = [
+test('only stable releases count, unless the app follows pre-releases', () => {
+  const onlyPre = [
     release('web.7', '2026-04-01T00:00:00Z', ['lemon-studio-web.zip'], { prerelease: true }),
     release('web.8', '2026-05-01T00:00:00Z', ['lemon-studio-web.zip'], { prerelease: true }),
   ]
-  assert.equal(pickRelease(releases, {}).release.tag_name, 'web.8')
+  assert.equal(pickRelease(onlyPre, {}), null)
+  assert.equal(pickRelease(onlyPre, { prerelease: true }).release.tag_name, 'web.8')
+  const mixed = [
+    release('nightly', '2026-05-01T00:00:00Z', ['app-web-n.zip'], { prerelease: true }),
+    release('v1', '2026-01-01T00:00:00Z', ['app-web-1.zip']),
+  ]
+  assert.equal(pickRelease(mixed, {}).release.tag_name, 'v1')
+  assert.equal(pickRelease(mixed, { prerelease: true }).release.tag_name, 'nightly')
 })
 
 test('honors a custom asset pattern and skips half-uploaded assets', () => {

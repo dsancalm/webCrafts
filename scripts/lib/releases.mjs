@@ -5,9 +5,9 @@ export const DEFAULT_ASSET = '-web([-.][^/]*)?\\.zip$'
 
 export const assetPattern = (app) => new RegExp(app.asset ?? DEFAULT_ASSET, 'i')
 
-// The newest published release with a matching asset. Full releases win over pre-releases; a repo that
-// has only pre-releases with web builds (nightly-only projects) gets its newest pre-release. Tags in the
-// app's `skipTags` (releases whose web build is known to be broken) are passed over.
+// The newest stable (not pre-release) published release with a matching asset, or null when there is none.
+// Apps with `prerelease: true` take the newest release, stable or not. Tags in the app's `skipTags`
+// (releases whose web build is known to be broken) are passed over.
 export function pickRelease(releases, app) {
   const pattern = assetPattern(app)
   const skip = new Set(app.skipTags ?? [])
@@ -16,5 +16,5 @@ export function pickRelease(releases, app) {
     .map((r) => ({ release: r, asset: r.assets.find((a) => pattern.test(a.name) && (a.state ?? 'uploaded') === 'uploaded') }))
     .filter((c) => c.asset)
     .sort((a, b) => (b.release.published_at ?? '').localeCompare(a.release.published_at ?? ''))
-  return candidates.find((c) => !c.release.prerelease) ?? candidates[0] ?? null
+  return (app.prerelease ? candidates[0] : candidates.find((c) => !c.release.prerelease)) ?? null
 }

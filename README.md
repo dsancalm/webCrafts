@@ -11,12 +11,14 @@ repositorio en GitHub, servido tal cual.
 
 1. `apps.json` es el catálogo: grupos, apps, repositorio de cada una, descripción (inglés/español) y
    a qué programa sustituye.
-2. `scripts/build.mjs` consulta la API de GitHub, elige la release más reciente que tenga un zip web
-   (`*-web.zip`, `*-web-<versión>.zip`…; una release estable gana a una pre-release más nueva), lo descarga
+2. `versions.lock.json` guarda la versión (tag de release) de cada app: la primera de cada lista es la
+   publicada, y se conservan como mucho las 3 últimas.
+3. `scripts/build.mjs` descarga de GitHub el zip web (`*-web.zip`, `*-web-<versión>.zip`…) de esa versión
    y lo descomprime en `dist/<id>/`. Después genera el panel (`dist/index.html`), una página 404 y
    `dist/versions.json` con lo instalado.
-3. El workflow `.github/workflows/pages.yml` ejecuta los tests, el build y una prueba en Chrome sin
-   interfaz, y publica `dist/` en GitHub Pages.
+4. El workflow `.github/workflows/pages.yml` ejecuta los tests, el build y una prueba en Chrome sin
+   interfaz, y publica `dist/` en GitHub Pages en cada push a `main`.
+5. El workflow `.github/workflows/update.yml` busca cada día versiones nuevas (ver más abajo).
 
 Detalles:
 
@@ -56,11 +58,26 @@ Solo hay que hacerlo una vez:
 Solo despliega la rama por defecto del repositorio; en las demás ramas el workflow compila y prueba sin
 publicar.
 
-### Actualizar a las releases nuevas
+### Actualización diaria de las apps
 
-El sitio no se actualiza solo: cada ejecución del workflow coge la última release de cada app. Para
-actualizar, vuelve a lanzar el workflow a mano. Si más adelante quieres que sea automático, descomenta
-el bloque `schedule` de `.github/workflows/pages.yml` (por defecto, una vez al día).
+Todos los días a las 06:17 UTC el workflow **Daily app update** (`update.yml`) ejecuta
+`scripts/update.mjs`:
+
+- Para cada app busca su **última release estable** con zip web (las pre-releases y los borradores no
+  cuentan, y tampoco los tags de `skipTags`).
+- Si una app no tiene release estable, **se queda en la versión que tiene**. La excepción es **Lemon
+  Studio** (`"prerelease": true` en `apps.json`): todas sus versiones web son pre-releases, así que sigue
+  la más reciente.
+- Si **ninguna app ha cambiado**, termina sin commit ni despliegue.
+- Si alguna ha cambiado, actualiza `versions.lock.json` con un commit del bot en `main` (por ejemplo
+  «Update PhotoCraft v0.10.0 → v0.11.0») y lanza el despliegue.
+
+También se puede lanzar a mano desde **Actions → Daily app update → Run workflow**. Para fijar o volver a
+una versión, edita el primer tag de esa app en `versions.lock.json` y haz push. Los push con cambios de
+código usan las versiones de ese archivo, así que nunca actualizan apps por su cuenta.
+
+GitHub pausa las tareas programadas de un repositorio público tras 60 días sin actividad. Si pasa, se
+reactiva desde la pestaña Actions.
 
 ## Límites de GitHub Pages
 

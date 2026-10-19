@@ -1,0 +1,21 @@
+{
+  "$comment": "Release tag of each app, newest (the deployed one) first, at most 3. Updated daily by .github/workflows/update.yml; edit the first tag to pin a version.",
+  "apps": {
+    "photocraft": ["v0.10.0"],
+    "vectorcraft": ["v0.13.1"],
+    "designcraft": ["v0.9.0"],
+    "lightcraft": ["v0.9.1"],
+    "lightcraft-classic": ["v0.9.4"],
+    "filmcraft": ["v0.9.0"],
+    "effectcraft": ["v0.11.1"],
+    "pdfcraft": ["v0.9.0"],
+    "wordcraft": ["v0.8.0"],
+    "gridcraft": ["v0.8.0"],
+    "deckcraft": ["v0.7.0"],
+    "cadcraft": ["v0.8.0"],
+    "solidcraft": ["v0.16.2"],
+    "soundcraft": ["v0.8.0"],
+    "lemon-studio": ["v0.0.1-web.8"],
+    "figcraft": ["v0.7.0"]
+  }
+}

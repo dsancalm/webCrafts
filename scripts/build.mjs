@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// Builds the static site into dist/: the dashboard, plus each app of apps.json unpacked from the web zip of
-// its newest GitHub release into dist/<id>/.
+// Builds the static site into dist/: the dashboard, plus each app of apps.json unpacked into dist/<id>/ from
+// the web zip of the release versions.lock.json names for it (scripts/update.mjs moves those forward). An app
+// not in versions.lock.json yet gets its newest stable release.
 //
 //   node scripts/build.mjs [--out dist] [--cache .cache] [--only id,id] [--list] [--strict] [--catalog apps.json]
-//                          [--budget-mb 950]
+//                          [--lock versions.lock.json] [--budget-mb 950]
 //
 //   --only       build just these apps (the others show as unavailable)
 //   --list       only print the release each app would be installed from
@@ -16,9 +17,10 @@ import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, sta
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { loadCatalog } from './lib/catalog.mjs'
-import { downloadAsset, listReleases } from './lib/github.mjs'
+import { downloadAsset, getRelease, listReleases } from './lib/github.mjs'
 import { installZip, walk } from './lib/install.mjs'
-import { pickRelease } from './lib/releases.mjs'
+import { lockedTag, readLock } from './lib/lock.mjs'
+import { assetPattern, pickRelease } from './lib/releases.mjs'
 import { renderDashboard, renderNotFound } from './lib/render.mjs'
 
 // GitHub Pages: published sites may be at most 1 GB, and git-hosted files at most 100 MB.
@@ -33,11 +35,13 @@ const { values: opts } = parseArgs({
     list: { type: 'boolean', default: false },
     strict: { type: 'boolean', default: false },
     catalog: { type: 'string', default: 'apps.json' },
+    lock: { type: 'string', default: 'versions.lock.json' },
     'budget-mb': { type: 'string', default: '950' },
   },
 })
 
 const catalog = loadCatalog(opts.catalog)
+const lock = readLock(opts.lock)
 const only = opts.only ? new Set(opts.only.split(',').map((s) => s.trim())) : null
 for (const id of only ?? []) if (!catalog.apps.some((a) => a.id === id)) throw new Error(`--only: no app "${id}" in apps.json`)
 const mb = (n) => `${(n / 1024 ** 2).toFixed(1)} MB`
@@ -51,7 +55,21 @@ async function pool(items, limit, fn) {
   }))
 }
 
+// The release versions.lock.json names for the app. One not in it yet, or whose locked release is gone, gets
+// the release scripts/update.mjs would pick.
 async function resolve(app) {
+  const tag = lockedTag(lock, app.id)
+  if (tag) {
+    try {
+      const release = await getRelease(app.repo, tag)
+      const asset = release.assets.find((a) => assetPattern(app).test(a.name) && (a.state ?? 'uploaded') === 'uploaded')
+      if (asset) return { release, asset }
+      warn(`${app.id}: ${tag} from ${opts.lock} has no web zip; using its newest release instead`)
+    } catch (e) {
+      if (!/ 404 /.test(e.message)) throw e
+      warn(`${app.id}: ${tag} from ${opts.lock} no longer exists; using its newest release instead`)
+    }
+  }
   const pick = pickRelease(await listReleases(app.repo), app)
   return pick && { release: pick.release, asset: pick.asset }
 }
@@ -60,7 +78,7 @@ if (opts.list) {
   await pool(catalog.apps, 4, async (app) => {
     try {
       const r = await resolve(app)
-      console.log(r ? `${app.id}: ${r.release.tag_name}${r.release.prerelease ? ' (pre-release)' : ''} ${r.asset.name} ${mb(r.asset.size)}` : `${app.id}: no web release${app.external ? `, links to ${app.external}` : ''}`)
+      console.log(r ? `${app.id}: ${r.release.tag_name}${r.release.prerelease ? ' (pre-release)' : ''} ${r.asset.name} ${mb(r.asset.size)}` : `${app.id}: no stable web release${app.external ? `, links to ${app.external}` : ''}`)
     } catch (e) {
       console.log(`${app.id}: ERROR ${e.message}`)
     }

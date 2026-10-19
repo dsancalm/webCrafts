@@ -30,6 +30,12 @@ export async function fakeGitHub(releases) {
       if (!list) return res.writeHead(404, { 'content-type': 'application/json' }).end('{"message":"Not Found"}')
       return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(list.map(strip)))
     }
+    const t = url.pathname.match(/^\/repos\/([^/]+\/[^/]+)\/releases\/tags\/(.+)$/)
+    if (t) {
+      const release = releases[t[1]]?.find((r) => r.tag_name === decodeURIComponent(t[2]))
+      if (!release) return res.writeHead(404, { 'content-type': 'application/json' }).end('{"message":"Not Found"}')
+      return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(strip(release)))
+    }
     const a = url.pathname.match(/^\/assets\/(\d+)$/)
     if (a && assets.has(Number(a[1])) && req.headers.accept === 'application/octet-stream') {
       return res.writeHead(200, { 'content-type': 'application/octet-stream' }).end(readFileSync(assets.get(Number(a[1]))))

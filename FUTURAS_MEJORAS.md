@@ -129,7 +129,6 @@ aplica (porque el proyecto cambió), se compila sin él o se usa la release ofic
 
 ## Otras mejoras posibles
 
-- **Actualización automática:** descomentar el bloque `schedule` de `.github/workflows/pages.yml`.
 - **Canal de últimos commits:** con el pipeline de compilación anterior, compilar también la rama
   principal de cada app y publicarla en `/head/<id>/` con un interruptor en el panel.
 - **Explorador de archivos en el navegador**, guardando los documentos en el almacenamiento del navegador

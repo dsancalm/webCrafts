@@ -1,5 +1,5 @@
 {
-  "$comment": "Catalog of the apps on the dashboard. Each app is served at <site>/<id>/ from the web zip of its newest GitHub release. Fields: id (URL folder), name, repo (owner/name), alternativeTo (the commercial app it replaces, shown as text only), description (en/es), asset (optional regex for the release asset; default matches '-web.zip' / '-web-<version>.zip'), isolated (needs COOP/COEP, added with a service worker), external (a hosted copy to link to when the releases have no web zip, or when the app doesn't fit the site's size budget), skipTags (releases whose web build is broken, passed over for the previous one), experimental (shows a badge).",
+  "$comment": "Catalog of the apps on the dashboard. Each app is served at <site>/<id>/ from the web zip of its newest GitHub release. Fields: id (URL folder), name, repo (owner/name), alternativeTo (the commercial app it replaces, shown as text only), description (en/es), asset (optional regex for the release asset; default matches '-web.zip' / '-web-<version>.zip'), isolated (needs COOP/COEP, added with a service worker), external (a hosted copy to link to when the releases have no web zip, or when the app doesn't fit the site's size budget), skipTags (releases whose web build is broken, passed over for the previous one), prerelease (follow pre-releases too; by default only stable releases count), experimental (shows a badge). The version each app is on lives in versions.lock.json.",
   "groups": [
     {
       "id": "creative",
@@ -186,6 +186,8 @@
           "name": "Lemon Studio",
           "repo": "daijro/Lemon-Studio-web",
           "alternativeTo": "FL Studio",
+          "prerelease": true,
+          "$prerelease": "Every web release of Lemon Studio is a pre-release, so it follows its newest one.",
           "isolated": true,
           "experimental": true,
           "accent": "#f8d84a",

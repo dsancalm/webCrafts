@@ -32,7 +32,8 @@ export async function api(path) {
   return res.json()
 }
 
-export const listReleases = (repo) => api(`repos/${repo}/releases?per_page=50`)
+export const listReleases = (repo) => api(`repos/${repo}/releases?per_page=100`)
+export const getRelease = (repo, tag) => api(`repos/${repo}/releases/tags/${encodeURIComponent(tag)}`)
 
 // A release asset into `file`: through its API URL, else its public download link.
 export async function downloadAsset(asset, file) {

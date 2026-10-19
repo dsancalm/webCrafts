@@ -1,14 +1,11 @@
 name: Build and deploy to GitHub Pages
 
-# Builds the site from the newest release of every app in apps.json and publishes it with GitHub Pages
+# Builds the site with the app versions in versions.lock.json and publishes it with GitHub Pages
 # (Settings → Pages → Source: "GitHub Actions"). Every push builds and smoke-tests; only the default branch
-# deploys. To pick up new releases, run it by hand (Actions → this workflow → "Run workflow"), or enable
-# the schedule below.
+# deploys. New app releases come in through update.yml, which runs this workflow when one lands.
 on:
   push:
   workflow_dispatch:
-  # schedule:
-  #   - cron: '17 6 * * *' # every day at 06:17 UTC
 
 permissions:
   contents: read
@@ -60,8 +57,7 @@ jobs:
 
   deploy:
     needs: build
-    # Scheduled runs always run on the default branch.
-    if: github.event_name == 'schedule' || github.ref_name == github.event.repository.default_branch
+    if: github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     permissions:
       pages: write
