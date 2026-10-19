@@ -58,6 +58,9 @@ test('the headline flows across the width and the clear-data dialog knows every 
   assert.ok(!/<h1>[^]*<br>[^]*<\/h1>/.test(html))
   assert.match(html, /<button type="button" class="reset-open"/)
   assert.match(html, /<dialog class="reset"[^>]* data-apps="ready hosted none broken"/)
-  assert.match(html, /<span class="l-es">Borrar todo<\/span>/)
+  assert.match(html, /<span class="l-es">Borrar<\/span>/)
+  // it only clears what is under the site's folder, and says what it keeps
+  assert.match(html, /<span class="l-es">Se conservan las bases de datos/)
+  assert.ok(!/class="shared"/.test(html))
   assert.match(html, /<div class="foot-inner">/)
 })

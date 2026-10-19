@@ -144,16 +144,12 @@ export function renderDashboard({ catalog, results, builtAt, siteRepo }) {
     <form method="dialog">
       <h2 id="reset-title">${t('Clear app data', 'Borrar datos de las apps')}</h2>
       <p>${t(
-        'Deletes everything the apps keep in this browser: service workers, cached files (WebAssembly included), databases, files in browser storage, cookies and local storage.',
-        'Borra todo lo que las apps guardan en este navegador: service workers, archivos en caché (WebAssembly incluido), bases de datos, archivos del almacenamiento del navegador, cookies y almacenamiento local.',
+        "Deletes what the apps keep in this browser under this site's address: service workers, cached files (WebAssembly included) and cookies.",
+        'Borra lo que las apps guardan en este navegador bajo la dirección de este sitio: service workers, archivos en caché (WebAssembly incluido) y cookies.',
       )}</p>
-      <p class="warn">${t(
-        'Documents, libraries and settings saved inside the apps are lost too. Close any app tabs you have open first.',
-        'También se pierden los documentos, bibliotecas y ajustes guardados dentro de las apps. Cierra antes las pestañas de apps que tengas abiertas.',
-      )}</p>
-      <p class="shared" hidden>${t('Every GitHub Pages site at', 'Todos los sitios de GitHub Pages de')} <b class="host"></b> ${t(
-        'shares this storage, so their databases, browser files and local storage are deleted as well.',
-        'comparten este almacenamiento, así que sus bases de datos, archivos y almacenamiento local también se borran.',
+      <p>${t(
+        'Databases, files in browser storage and local storage are kept: they belong to the whole domain, which other sites may share, so the documents and settings the apps save there stay.',
+        'Se conservan las bases de datos, los archivos del almacenamiento del navegador y el almacenamiento local: pertenecen a todo el dominio, que pueden compartir otros sitios, así que los documentos y ajustes que las apps guardan ahí se mantienen.',
       )}</p>
       <p class="note">${t(
         "The browser's regular HTTP cache can only be emptied from its settings; GitHub Pages has it check for new versions every 10 minutes.",
@@ -163,7 +159,7 @@ export function renderDashboard({ catalog, results, builtAt, siteRepo }) {
       <ul class="result" hidden></ul>
       <div class="actions">
         <button value="cancel" class="cancel">${t('Cancel', 'Cancelar')}</button>
-        <button type="button" class="danger go">${t('Delete everything', 'Borrar todo')}</button>
+        <button type="button" class="danger go">${t('Delete', 'Borrar')}</button>
         <button value="close" class="close" hidden>${t('Close', 'Cerrar')}</button>
       </div>
     </form>

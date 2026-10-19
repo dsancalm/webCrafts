@@ -14,11 +14,8 @@ const TEXT = {
     nothing: 'There was nothing to delete.',
     workers: (n) => `${n} service worker${n === 1 ? '' : 's'}`,
     caches: (n) => `${n} cache${n === 1 ? '' : 's'}`,
-    databases: (n) => `${n} database${n === 1 ? '' : 's'}`,
-    files: (n) => `${n} file${n === 1 ? '' : 's'} or folder${n === 1 ? '' : 's'} in browser storage`,
     cookies: (n) => `${n} cookie${n === 1 ? '' : 's'}`,
-    storage: (n) => `${n} local storage entr${n === 1 ? 'y' : 'ies'}`,
-    blocked: 'Some data is in use by an app tab that is still open: close it and delete again.',
+    failed: 'Some data could not be deleted (the browser console says why).',
   },
   es: {
     search: 'Buscar apps',
@@ -29,11 +26,8 @@ const TEXT = {
     nothing: 'No había nada que borrar.',
     workers: (n) => `${n} service worker${n === 1 ? '' : 's'}`,
     caches: (n) => `${n} caché${n === 1 ? '' : 's'}`,
-    databases: (n) => `${n} base${n === 1 ? '' : 's'} de datos`,
-    files: (n) => `${n} archivo${n === 1 ? '' : 's'} o carpeta${n === 1 ? '' : 's'} del almacenamiento del navegador`,
     cookies: (n) => `${n} cookie${n === 1 ? '' : 's'}`,
-    storage: (n) => `${n} entrada${n === 1 ? '' : 's'} de almacenamiento local`,
-    blocked: 'Algunos datos los está usando una pestaña de app que sigue abierta: ciérrala y vuelve a borrar.',
+    failed: 'No se pudieron borrar algunos datos (la consola del navegador dice por qué).',
   },
 }
 const text = () => TEXT[root.dataset.lang === 'es' ? 'es' : 'en']
@@ -103,14 +97,13 @@ document.addEventListener('keydown', (e) => {
   filter.focus()
 })
 
-// "Clear data": everything the apps keep in this browser. Service workers and Cache Storage entries are
-// matched to this site's folder. IndexedDB, browser files (OPFS), cookies and local storage belong to the
-// whole origin, which on <user>.github.io every Pages site of that user shares: the dialog says so there.
-// The dashboard's own two settings (language, naming) are kept.
+// "Clear data": only what the apps keep in this browser under this site's folder: service workers, Cache
+// Storage entries and cookies whose path is in it. IndexedDB, browser files (OPFS), local and session storage
+// and cookies for '/' belong to the whole origin, which on <user>.github.io every Pages site of that user
+// shares and can't be told apart by site, so they are left alone.
 const dialog = document.querySelector('dialog.reset')
 const base = new URL('.', location.href)
 const inSite = (url) => url.startsWith(base.href)
-const PREFS = ['webcrafts-lang', 'webcrafts-naming']
 
 const formatSize = (bytes) => (bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(2)} GB` : `${(bytes / 1024 ** 2).toFixed(1)} MB`)
 const usage = async () => {
@@ -121,25 +114,16 @@ const usage = async () => {
   }
 }
 
-const deleteDatabase = (name) =>
-  new Promise((resolve) => {
-    const request = indexedDB.deleteDatabase(name)
-    request.onsuccess = () => resolve(true)
-    request.onerror = () => resolve(false)
-    // Another tab still has it open: it goes once that tab closes; don't wait for it.
-    request.onblocked = () => setTimeout(() => resolve(false), 1500)
-  })
-
 async function clearSiteData(appIds) {
-  const done = { workers: 0, caches: 0, databases: 0, files: 0, cookies: 0, storage: 0, blocked: false }
-  // Each step runs only where the browser has its API; a failure means the data is in use.
+  const done = { workers: 0, caches: 0, cookies: 0, failed: false }
+  // Each step runs only where the browser has its API.
   const step = async (supported, fn) => {
     if (!supported) return
     try {
       await fn()
     } catch (e) {
       console.warn('webcrafts: clear data', e)
-      done.blocked = true
+      done.failed = true
     }
   }
   await step('serviceWorker' in navigator, async () => {
@@ -152,39 +136,27 @@ async function clearSiteData(appIds) {
       const cache = await caches.open(name)
       const requests = await cache.keys()
       const mine = requests.filter((r) => inSite(r.url))
-      if (mine.length === requests.length) await caches.delete(name)
+      // (an empty cache can't be told apart by site: it stays)
+      if (mine.length && mine.length === requests.length) await caches.delete(name)
       else await Promise.all(mine.map((r) => cache.delete(r)))
       if (mine.length) done.caches++
     }
   })
-  await step(typeof indexedDB !== 'undefined' && 'databases' in indexedDB, async () => {
-    for (const { name } of await indexedDB.databases()) {
-      if (await deleteDatabase(name)) done.databases++
-      else done.blocked = true
-    }
-  })
-  await step(typeof navigator.storage?.getDirectory === 'function', async () => {
-    const dir = await navigator.storage.getDirectory()
-    const names = []
-    for await (const name of dir.keys()) names.push(name)
-    for (const name of names) {
-      try {
-        await dir.removeEntry(name, { recursive: true })
-        done.files++
-      } catch {
-        done.blocked = true // open in an app tab
-      }
-    }
-  })
   await step(true, async () => {
     // A cookie is only visible from its own path: those the apps set for their folder are read and expired
-    // through a hidden iframe of a small same-origin file there (the app's icon).
-    const expire = (doc, path) => {
+    // through a hidden iframe of a small same-origin file there (the app's icon). document.cookie doesn't
+    // say which path each one has, so every name seen is expired at this site's paths only, never at '/',
+    // and what disappeared is counted. A cookie set without a path gets its page's folder without the
+    // final slash ('/webCrafts/app'), one set with it keeps it: both are expired.
+    const count = (doc) => doc.cookie.split(';').filter((c) => c.trim()).length
+    const expire = (doc, folder) => {
+      const before = count(doc)
       const names = new Set(doc.cookie.split(';').map((c) => c.split('=')[0].trim()).filter(Boolean))
+      const paths = new Set([base.pathname, folder].flatMap((p) => [p, p.slice(0, -1)]).filter((p) => p.length > 1))
       for (const name of names) {
-        for (const p of new Set(['/', base.pathname, path])) doc.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}`
+        for (const p of paths) doc.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${p}`
       }
-      return names.size
+      return before - count(doc)
     }
     done.cookies += expire(document, base.pathname)
     const inFolder = (id) =>
@@ -208,13 +180,6 @@ async function clearSiteData(appIds) {
       })
     for (const n of await Promise.all(appIds.map(inFolder))) done.cookies += n
   })
-  await step(true, () => {
-    const kept = PREFS.map((k) => [k, localStorage.getItem(k)]).filter(([, v]) => v !== null)
-    done.storage = localStorage.length - kept.length + sessionStorage.length
-    localStorage.clear()
-    sessionStorage.clear()
-    for (const [k, v] of kept) localStorage.setItem(k, v)
-  })
   return done
 }
 
@@ -223,10 +188,6 @@ if (dialog) {
   const usageLine = dialog.querySelector('.usage')
   const result = dialog.querySelector('.result')
   const [cancel, go, close] = ['.cancel', '.go', '.close'].map((s) => dialog.querySelector(s))
-  if (location.hostname.endsWith('.github.io') && base.pathname !== '/') {
-    dialog.querySelector('.shared').hidden = false
-    dialog.querySelector('.host').textContent = location.hostname
-  }
 
   document.querySelector('.reset-open').addEventListener('click', async () => {
     result.hidden = true
@@ -245,9 +206,9 @@ if (dialog) {
     usageLine.textContent = text().working
     const done = await clearSiteData(appIds)
     const t = text()
-    const lines = ['workers', 'caches', 'databases', 'files', 'cookies', 'storage'].filter((k) => done[k]).map((k) => t[k](done[k]))
+    const lines = ['workers', 'caches', 'cookies'].filter((k) => done[k]).map((k) => t[k](done[k]))
     const items = lines.length ? [t.removed, ...lines] : [t.nothing]
-    if (done.blocked) items.push(t.blocked)
+    if (done.failed) items.push(t.failed)
     result.replaceChildren(...items.map((line) => Object.assign(document.createElement('li'), { textContent: line })))
     result.hidden = false
     const bytes = await usage()
